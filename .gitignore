@@ -1,0 +1,13 @@
+# virtualenv
+.venv/
+
+# generated index - rebuild with: python ingest.py <file.pdf>
+data/
+
+# python bytecode
+__pycache__/
+*.pyc
+
+# source document, not redistributable
+book.pdf
+
