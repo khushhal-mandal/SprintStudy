@@ -23,7 +23,7 @@ from config import (
 )
 from embedder import embed_passage, embed_query
 
-_bm25: bm25_module.BM25 | None = None
+_bm25: dict[str, bm25_module.BM25] = {}
 _cache: dict | None = None
 
 
@@ -40,7 +40,7 @@ def hybrid(question: str, store, k: int):
     hit 1.0 and destroy comparability across questions.
     """
     dense_ranks = _rrf(store.dense_scores(embed_query(question)))
-    keyword_ranks = _rrf(_get_bm25(store.chunks).scores(question))
+    keyword_ranks = _rrf(_get_bm25(store).scores(question))
 
     fused = (1 - HYBRID_WEIGHT) * dense_ranks + HYBRID_WEIGHT * keyword_ranks
     top = np.argsort(fused)[-k:][::-1]
@@ -65,12 +65,16 @@ def _rrf(scores: np.ndarray) -> np.ndarray:
     return 1.0 / (RRF_K + ranks)
 
 
-def _get_bm25(chunks: list[dict]) -> bm25_module.BM25:
-    """Built once and reused - same pattern as embedder._get_model."""
-    global _bm25
-    if _bm25 is None:
-        _bm25 = bm25_module.BM25([c["text"] for c in chunks])
-    return _bm25
+def _get_bm25(store) -> bm25_module.BM25:
+    """Built once per store and reused.
+
+    Keyed by store rather than cached in a single global: with more than one
+    document indexed, a global would score every query against whichever
+    document happened to be seen first.
+    """
+    if store.key not in _bm25:
+        _bm25[store.key] = bm25_module.BM25([c["text"] for c in store.chunks])
+    return _bm25[store.key]
 
 
 def _load_cache() -> dict:

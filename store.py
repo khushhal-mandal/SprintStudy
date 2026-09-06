@@ -36,6 +36,7 @@ class NumpyStore:
     """
 
     name = "numpy"
+    key = "numpy"
 
     def __init__(self, chunks: list[dict] | None = None, vectors: np.ndarray | None = None):
         if chunks is None or vectors is None:

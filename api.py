@@ -170,8 +170,9 @@ def ask(request: AskRequest) -> dict:
 
     with upstream():
         store = _ready_store(request.document_id)
-        qa._store = store  # same store the API resolved, rather than a second one
-        return qa.answer(request.question, ANSWER_K)
+        # Passed, never assigned onto qa: sync handlers run in a threadpool, so a
+        # module-level store is shared across concurrent requests.
+        return qa.answer(request.question, ANSWER_K, store=store)
 
 
 # --------------------------------------------------------------------------

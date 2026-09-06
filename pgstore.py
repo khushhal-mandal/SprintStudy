@@ -74,6 +74,9 @@ class PostgresStore:
     def __init__(self, document_id: int | None = None):
         self.document_id = document_id if document_id is not None else latest_document_id()
         self._chunks: list[dict] | None = None
+        # Distinguishes documents for anything cached per store, such as the
+        # BM25 index in retrievers.py.
+        self.key = f"postgres:{self.document_id}"
 
     @property
     def chunks(self) -> list[dict]:

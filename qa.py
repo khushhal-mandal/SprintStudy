@@ -42,7 +42,12 @@ _store = None
 
 
 def _load_index():
-    """The configured store, opened once and reused across questions."""
+    """The configured store, opened once and reused across questions.
+
+    Only for the CLI, which is single-threaded and serves one document. Callers
+    that already know their store pass it to answer() instead - see the note
+    there.
+    """
     global _store
     if _store is None:
         _store = open_store()
@@ -78,8 +83,16 @@ def parse_citations(answer: str, chunks: list[dict]) -> tuple[list[dict], list[i
     return citations, dropped
 
 
-def answer(question: str, k: int = ANSWER_K) -> dict:
-    store = _load_index()
+def answer(question: str, k: int = ANSWER_K, store=None) -> dict:
+    """Answer from one document's chunks.
+
+    `store` is an argument rather than module state because the API serves
+    requests concurrently. Assigning a module-level store per request let two
+    overlapping requests interleave: the second overwrote the global before the
+    first read it, so a question about one document was answered - and cited -
+    from another. Passing it down keeps each request on its own document.
+    """
+    store = store if store is not None else _load_index()
     hits = RETRIEVERS[RETRIEVER](question, store, k)
 
     # MIN_CONTEXT_SCORE is calibrated on question-vs-chunk cosine: the dense
