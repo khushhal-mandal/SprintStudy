@@ -487,8 +487,8 @@ def compare() -> None:
     print()
 
 
-def main(path: Path, retriever: str, backend: str) -> None:
-    store = open_store(backend)
+def main(path: Path, retriever: str, backend: str, document_id: int | None) -> None:
+    store = open_store(backend, document_id)
     items = load_items(path, {c["page"] for c in store.chunks})
 
     rows = run(items, store, EVAL_K, RETRIEVERS[retriever])
@@ -516,6 +516,10 @@ if __name__ == "__main__":
         help="which backend serves vector search (default: config.STORE)",
     )
     parser.add_argument(
+        "--document-id", type=int, default=None,
+        help="which document the postgres store reads (default: most recent)",
+    )
+    parser.add_argument(
         "--compare", action="store_true", help="show every saved run side by side"
     )
     args = parser.parse_args()
@@ -523,4 +527,4 @@ if __name__ == "__main__":
     if args.compare:
         compare()
     else:
-        main(args.eval_set, args.retriever, args.store)
+        main(args.eval_set, args.retriever, args.store, args.document_id)

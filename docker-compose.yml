@@ -1,29 +1,58 @@
-# Postgres with pgvector for the study index.
+# The whole stack: Postgres with pgvector, and the API.
 #
-# The tag is pinned to an exact pgvector release rather than :latest or :pg17,
-# because a version bump that changed vector arithmetic would move retrieval
-# numbers with nothing in this repo to explain why.
+#   cp .env.example .env    # fill it in
+#   docker compose up -d
+
 services:
   db:
+    # Pinned to an exact pgvector release rather than :latest or :pg17. A version
+    # bump that changed vector arithmetic would move retrieval numbers with
+    # nothing in this repo to explain why.
     image: pgvector/pgvector:0.8.6-pg17
     container_name: study-pg
     environment:
-      POSTGRES_USER: study
-      POSTGRES_PASSWORD: study
-      POSTGRES_DB: study
+      POSTGRES_USER: ${POSTGRES_USER:-study}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-study}
+      POSTGRES_DB: ${POSTGRES_DB:-study}
     ports:
       - "5432:5432"
     volumes:
-      # Named volume so the index survives a container restart - re-ingesting
-      # a 296-page PDF costs minutes.
+      # Named volume so the index survives a restart - re-ingesting a 296-page
+      # PDF costs minutes.
       - study-pgdata:/var/lib/postgresql/data
       # Applied automatically on first initialisation of an empty volume.
       - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U study -d study"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-study} -d ${POSTGRES_DB:-study}"]
       interval: 3s
       timeout: 3s
       retries: 20
 
+  api:
+    build: .
+    container_name: study-api
+    depends_on:
+      db:
+        # Waits for the healthcheck rather than for the container to exist.
+        # Without this the API starts while Postgres is still initialising,
+        # fails to connect, and crash-loops.
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-study}:${POSTGRES_PASSWORD:-study}@db:5432/${POSTGRES_DB:-study}
+      # Passed through with no default. Absent, it surfaces as a 503 naming the
+      # cause on the first call that needs it - ingestion and retrieval do not.
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      STORE: postgres
+    ports:
+      - "8000:8000"
+    volumes:
+      # The embedding model, mounted at the image's HF_HOME. It is fetched here
+      # on first start rather than baked into the image, so it is downloaded
+      # once and survives every rebuild after that. Cold on a fresh machine the
+      # first `up` takes a minute longer; watch it with `docker compose logs -f api`.
+      - study-models:/models
+    restart: unless-stopped
+
 volumes:
   study-pgdata:
+  study-models:

@@ -159,15 +159,26 @@ QUIZ_PROMPT = """Write one multiple-choice question testing understanding of the
 
 Rules:
 1. The question must be answerable from the passage alone, and the correct
-   answer must be stated in it. Do not use outside knowledge.
-2. Give exactly 4 options. Exactly one is correct. The other three must be
-   plausible to someone who has not read the passage, not obviously absurd.
-3. Keep all four options about the same length. Do not make the correct one
+   answer must be stated in or follow from it. Do not use outside knowledge.
+2. Test understanding, not recall. The question must be answerable by someone
+   who understood the passage but memorised none of its specific example
+   values. If the correct answer is a number lifted from a worked example, do
+   not ask it. Ask why that result arises, or what would change it.
+3. Prefer "why", "how", or "what would happen if" over "what is". A question
+   whose answer can be found by scanning the passage for a matching word is a
+   weak question.
+4. Give exactly 4 options. Exactly one is correct.
+5. Each wrong option must be a plausible misunderstanding of the mechanism -
+   a confused complexity, a step applied in the wrong order, a condition
+   inverted, a structure mistaken for a similar one. Never use arbitrary
+   near-values, and never make the wrong options numbers close to the right
+   number.
+6. Keep all four options about the same length. Do not make the correct one
    longer or more detailed than the others.
-4. "evidence" must be copied word for word from the passage - the sentence or
+7. "evidence" must be copied word for word from the passage - the sentence or
    clause that makes the correct answer correct. Do not paraphrase it.
-5. Never mention a page number, a section number, or the document.
-6. If the passage has no teachable content - a table of contents, an index, a
+8. Never mention a page number, a section number, or the document.
+9. If the passage has no teachable content - a table of contents, an index, a
    fragment, a bare list of numbers - reply with exactly {sentinel} and
    nothing else. Do not invent a question from nothing.
 

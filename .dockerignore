@@ -1,0 +1,12 @@
+.git
+.venv
+frontend/node_modules
+frontend/dist
+data
+book.pdf
+*.pdf
+.env
+__pycache__
+*.pyc
+eval_runs
+hyde_cache.local.json
