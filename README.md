@@ -6,8 +6,8 @@ that document with a page citation, and auto-generate an MCQ quiz from it.
 The retrieval layer is written from scratch — no LangChain, no LlamaIndex, no separate
 vector database. Chunking, embedding, storage and search are all in this repo.
 
-> **Status:** in progress. Milestone 1 (ingestion) and milestone 2 (eval harness) are
-> done. Eval numbers go in this README once the eval set is scored.
+> **Status:** in progress. Milestones 1 (ingestion), 2 (eval harness) and 3 (grounded
+> Q&A) are done. Eval numbers go in this README once hybrid retrieval is measured.
 
 ## Test document
 
@@ -28,7 +28,10 @@ against the embedding model's 512 limit).
 ```sh
 python3.11 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+export GROQ_API_KEY="..."   # https://console.groq.com/keys
 ```
+
+The key is only needed for answering; ingestion and retrieval run offline.
 
 ## Usage
 
@@ -37,6 +40,8 @@ python ingest.py book.pdf          # parse, chunk, embed, write data/
 python search.py "your question"   # top-k chunks with page numbers
 python sections.py                 # section list with PDF page numbers
 python eval.py                     # score retrieval against eval.json
+python qa.py "your question"       # grounded answer with page citations
+python qa.py --all                 # every eval question through the pipeline
 ```
 
 `sections.py` is the reference for `expected_pages` in `eval.json`. The book's printed
