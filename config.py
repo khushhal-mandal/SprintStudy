@@ -30,10 +30,18 @@ QA_RUN_PATH = Path(__file__).parent / "qa_run.json"
 # depth for answering must not silently redefine what recall@K measured.
 ANSWER_K = 5
 
-# Cost floor, not the refusal mechanism. Refusal is the grounding prompt's job.
-# The lowest top-1 on the eval set is 0.623, so this should never fire there -
-# if it does, something upstream has changed and is worth looking at.
-MIN_CONTEXT_SCORE = 0.55
+# Crash guard against empty or nonsense input. NOT a relevance judgement -
+# refusal is the grounding prompt's job and nothing else's.
+#
+# Under HyDE this number cannot mean anything more than that. Question-vs-chunk
+# cosine runs 0.568-0.888 on answerable items and 0.574-0.675 on unanswerable
+# ones: the lowest answerable question scores below every unanswerable one, so
+# the two are not merely overlapping but interleaved. Any threshold placed near
+# them would be arbitrary, and would refuse real questions to no purpose.
+#
+# 0.40 sits below anything a genuine question produces. It exists so a garbage
+# query does not burn an LLM call, and for nothing else.
+MIN_CONTEXT_SCORE = 0.40
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 # The llama-3.x chat models are not reachable on this account; gpt-oss-120b is
