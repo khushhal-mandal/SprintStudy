@@ -26,3 +26,36 @@ def search(query_vec: np.ndarray, chunks: list[dict], vectors: np.ndarray, k: in
     scores = vectors @ query_vec
     top = np.argsort(scores)[-k:][::-1]
     return [(float(scores[i]), chunks[i]) for i in top]
+
+
+class NumpyStore:
+    """The reference implementation: the .npy index built by ingest.py.
+
+    Exposes the three operations the retrievers need. PostgresStore mirrors it,
+    and is only correct insofar as it returns the same thing.
+    """
+
+    name = "numpy"
+
+    def __init__(self, chunks: list[dict] | None = None, vectors: np.ndarray | None = None):
+        if chunks is None or vectors is None:
+            chunks, vectors = load()
+        self.chunks = chunks
+        self.vectors = vectors
+
+    def search(self, query_vec: np.ndarray, k: int) -> list[tuple[float, dict]]:
+        return search(query_vec, self.chunks, self.vectors, k)
+
+    def dense_scores(self, query_vec: np.ndarray) -> np.ndarray:
+        """Cosine similarity against every chunk, aligned with self.chunks."""
+        return self.vectors @ query_vec
+
+    def dense_score_at(self, chunk_id: int, query_vec: np.ndarray) -> float:
+        """One chunk's cosine similarity.
+
+        Deliberately a single-row dot rather than indexing into dense_scores:
+        a full matrix-vector product accumulates in a different order and lands
+        ~1e-8 away, which is enough to make the Postgres port look inexact when
+        it is not.
+        """
+        return float(self.vectors[chunk_id] @ query_vec)

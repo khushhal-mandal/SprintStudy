@@ -7,7 +7,8 @@ The retrieval layer is written from scratch — no LangChain, no LlamaIndex, no 
 vector database. Chunking, embedding, storage and search are all in this repo.
 
 > **Status:** in progress. Milestones 1 (ingestion), 2 (eval harness), 3 (grounded Q&A)
-> 4 (retrieval variants) and 5 (quiz generation) are done. FastAPI and Postgres next.
+> 4 (retrieval variants), 5 (quiz generation) and 6 (FastAPI + Postgres) are done.
+> React frontend next.
 
 ## Test document
 
@@ -49,6 +50,38 @@ python eval.py                     # score retrieval against eval.json
 python qa.py "your question"       # grounded answer with page citations
 python qa.py --all                 # every eval question through the pipeline
 python quiz.py 93 103 5            # 5 MCQs sampled across a page range
+```
+
+## API
+
+```sh
+docker compose up -d                    # Postgres 17 + pgvector 0.8.6
+uvicorn api:app --reload
+
+curl -F file=@book.pdf localhost:8000/upload      # 202, ingests in background
+curl localhost:8000/documents/1                   # poll until status is "ready"
+curl -X POST localhost:8000/ask -H 'Content-Type: application/json' \
+     -d '{"question":"How does a binary indexed tree compute a prefix sum?"}'
+curl -X POST localhost:8000/quiz/generate -H 'Content-Type: application/json' \
+     -d '{"start_page":93,"end_page":103,"n":5}'
+curl -X POST localhost:8000/quiz/submit -H 'Content-Type: application/json' \
+     -d '{"quiz_id":"...","responses":[0,2,1,3,0]}'
+```
+
+Four tables: `documents`, `chunks`, `quiz_questions`, `quiz_attempts`. A quiz is a shared
+`quiz_id` across a group of `quiz_questions` rows; `source_chunk_id` is a real foreign key,
+so a question cannot cite a chunk that does not exist.
+
+**There is no ANN index on `chunks.embedding`, deliberately.** `ivfflat` and `hnsw` are
+approximate and would return different neighbours from the NumPy index this was ported
+from. Vectors are L2-normalised at creation, so `-(embedding <#> q)` — negative inner
+product — reproduces `vectors @ query_vec` operation for operation; `<=>` would recompute
+norms and reintroduce drift. Verified: identical rank, RR and top-5 pages on all 20 eval
+questions for all three retrievers, with scores agreeing to 1–2 units in the last place of
+float32.
+
+```sh
+python eval.py --retriever hyde --store postgres   # same numbers, different backend
 ```
 
 `sections.py` is the reference for `expected_pages` in `eval.json`. The book's printed

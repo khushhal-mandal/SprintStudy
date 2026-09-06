@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
@@ -258,3 +259,15 @@ FIRST_CONTENT_PAGE = 11
 QUIZ_MIN_CHARS = 200
 QUIZ_MAX_DOT_RATIO = 0.15
 QUIZ_MIN_ALNUM_RATIO = 0.45
+
+# --- database ---
+
+# Never hardcoded: the default is a local convenience matching docker-compose.yml,
+# and any real deployment overrides it through the environment.
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL", "postgresql://study:study@localhost:5432/study"
+)
+
+# Which backend the retrievers read from. The NumPy store stays the reference
+# implementation - the Postgres one is only correct insofar as it matches it.
+STORE = os.environ.get("STORE", "numpy")

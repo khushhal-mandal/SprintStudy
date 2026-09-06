@@ -18,8 +18,8 @@ from pathlib import Path
 
 import numpy as np
 
-import store
 from config import EVAL_DEFAULT_RETRIEVER, EVAL_K, EVAL_PATH, EVAL_RUNS_DIR
+from stores import open_store
 from embedder import embed_query
 from retrievers import RETRIEVERS
 
@@ -166,13 +166,11 @@ def load_items(path: Path, indexed_pages: set[int]) -> list[dict]:
     return raw
 
 
-def run(
-    items: list[dict], chunks: list[dict], vectors: np.ndarray, k: int, retrieve
-) -> list[dict]:
+def run(items: list[dict], store, k: int, retrieve) -> list[dict]:
     """Retrieve for every item with the given retriever and score it."""
     rows = []
     for item in items:
-        hits = retrieve(item["question"], chunks, vectors, k)
+        hits = retrieve(item["question"], store, k)
         pages = [c["page"] for _, c in hits]
         expected = set(item["expected_pages"])
         rank = next((i for i, p in enumerate(pages, start=1) if p in expected), None)
@@ -183,7 +181,7 @@ def run(
         # retriever - how close the winning chunk is to the original question -
         # so it stays comparable across variants and back to the baseline.
         # embed_query applies QUERY_PREFIX; embed_chunks does not.
-        top1_dense = float(vectors[hits[0][1]["id"]] @ embed_query(item["question"]))
+        top1_dense = store.dense_score_at(hits[0][1]["id"], embed_query(item["question"]))
         rows.append(
             {
                 **item,
@@ -375,13 +373,21 @@ def summarise(rows: list[dict], k: int) -> dict:
     }
 
 
-def save_run(name: str, rows: list[dict], k: int) -> Path:
+def save_run(name: str, rows: list[dict], k: int, backend: str = "numpy") -> Path:
+    """One file per retriever+backend.
+
+    The backend is in the filename because a Postgres run and a NumPy run of the
+    same retriever are different measurements - writing both to one path silently
+    replaced the reference numbers the port is checked against.
+    """
     EVAL_RUNS_DIR.mkdir(exist_ok=True)
-    path = EVAL_RUNS_DIR / f"{name}.json"
+    stem = name if backend == "numpy" else f"{name}-{backend}"
+    path = EVAL_RUNS_DIR / f"{stem}.json"
     path.write_text(
         json.dumps(
             {
                 "retriever": name,
+                "store": backend,
                 "k": k,
                 "summary": summarise(rows, k),
                 "results": [
@@ -416,10 +422,14 @@ def compare() -> None:
             "Run: python eval.py --retriever dense|hybrid|hyde"
         )
 
-    runs = [json.loads(p.read_text(encoding="utf-8")) for p in paths]
+    runs = []
+    for path in paths:
+        run = json.loads(path.read_text(encoding="utf-8"))
+        run["label"] = path.stem
+        runs.append(run)
     # Baseline first, then the variants, so deltas read left to right.
-    runs.sort(key=lambda r: (r["retriever"] != "dense", r["retriever"]))
-    names = [r["retriever"] for r in runs]
+    runs.sort(key=lambda r: (r["label"] != "dense", r["label"]))
+    names = [r["label"] for r in runs]
     k = runs[0]["k"]
 
     print(f"\n{len(runs)} runs, K={k}\n")
@@ -459,7 +469,7 @@ def compare() -> None:
           + "".join(f"{r['summary']['unanswerable_top1_dense_mean']:>{w}.3f}" for r in runs))
 
     # Per-question ranks. A dash is a miss; moved rows are the point of this.
-    by_id = {r["retriever"]: {x["id"]: x for x in r["results"]} for r in runs}
+    by_id = {r["label"]: {x["id"]: x for x in r["results"]} for r in runs}
     order = [x["id"] for x in runs[0]["results"]]
 
     print(f"\n  rank of first expected page (- = not in top {k})\n")
@@ -477,18 +487,21 @@ def compare() -> None:
     print()
 
 
-def main(path: Path, retriever: str) -> None:
-    chunks, vectors = store.load()
-    items = load_items(path, {c["page"] for c in chunks})
+def main(path: Path, retriever: str, backend: str) -> None:
+    store = open_store(backend)
+    items = load_items(path, {c["page"] for c in store.chunks})
 
-    rows = run(items, chunks, vectors, EVAL_K, RETRIEVERS[retriever])
+    rows = run(items, store, EVAL_K, RETRIEVERS[retriever])
 
-    print(f"\n{len(items)} eval items against {len(chunks)} chunks  [retriever: {retriever}]")
+    print(
+        f"\n{len(items)} eval items against {len(store.chunks)} chunks  "
+        f"[retriever: {retriever}, store: {store.name}]"
+    )
     print_table(rows, EVAL_K)
     print_metrics(rows, EVAL_K)
     print_strict_multi_page(rows, EVAL_K)
     print_separation(rows)
-    print(f"\nrun saved to {save_run(retriever, rows, EVAL_K)}")
+    print(f"\nrun saved to {save_run(retriever, rows, EVAL_K, store.name)}")
     print()
 
 
@@ -499,6 +512,10 @@ if __name__ == "__main__":
         "--retriever", choices=sorted(RETRIEVERS), default=EVAL_DEFAULT_RETRIEVER
     )
     parser.add_argument(
+        "--store", choices=("numpy", "postgres"), default=None,
+        help="which backend serves vector search (default: config.STORE)",
+    )
+    parser.add_argument(
         "--compare", action="store_true", help="show every saved run side by side"
     )
     args = parser.parse_args()
@@ -506,4 +523,4 @@ if __name__ == "__main__":
     if args.compare:
         compare()
     else:
-        main(args.eval_set, args.retriever)
+        main(args.eval_set, args.retriever, args.store)

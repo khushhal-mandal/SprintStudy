@@ -14,7 +14,6 @@ import numpy as np
 
 import bm25 as bm25_module
 import llm
-import store
 from config import (
     GROQ_MODEL,
     HYBRID_WEIGHT,
@@ -28,34 +27,34 @@ _bm25: bm25_module.BM25 | None = None
 _cache: dict | None = None
 
 
-def dense(question: str, chunks: list[dict], vectors: np.ndarray, k: int):
+def dense(question: str, store, k: int):
     """The milestone 1 path, unchanged."""
-    return store.search(embed_query(question), chunks, vectors, k)
+    return store.search(embed_query(question), k)
 
 
-def hybrid(question: str, chunks: list[dict], vectors: np.ndarray, k: int):
+def hybrid(question: str, store, k: int):
     """Dense and BM25 rankings fused by RRF.
 
     Ranks are fused rather than scores because cosine sits around 0.6-0.9 while
     BM25 is unbounded; normalising scores per query would make every query's top
     hit 1.0 and destroy comparability across questions.
     """
-    dense_ranks = _rrf(vectors @ embed_query(question))
-    keyword_ranks = _rrf(_get_bm25(chunks).scores(question))
+    dense_ranks = _rrf(store.dense_scores(embed_query(question)))
+    keyword_ranks = _rrf(_get_bm25(store.chunks).scores(question))
 
     fused = (1 - HYBRID_WEIGHT) * dense_ranks + HYBRID_WEIGHT * keyword_ranks
     top = np.argsort(fused)[-k:][::-1]
-    return [(float(fused[i]), chunks[i]) for i in top]
+    return [(float(fused[i]), store.chunks[i]) for i in top]
 
 
-def hyde(question: str, chunks: list[dict], vectors: np.ndarray, k: int):
+def hyde(question: str, store, k: int):
     """Search with a hypothetical answer instead of the question.
 
     The generated passage is embedded as a document, with no query prefix: it
     stands in for the passage being looked for, so there is no question-shaped
     mismatch to correct.
     """
-    return store.search(embed_passage(hypothetical(question)), chunks, vectors, k)
+    return store.search(embed_passage(hypothetical(question)), k)
 
 
 def _rrf(scores: np.ndarray) -> np.ndarray:

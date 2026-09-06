@@ -11,3 +11,5 @@ __pycache__/
 # source document, not redistributable
 book.pdf
 
+# local Postgres data
+.env

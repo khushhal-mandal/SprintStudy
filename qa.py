@@ -18,7 +18,6 @@ import re
 import sys
 
 import llm
-import store
 from config import (
     ANSWER_K,
     EVAL_PATH,
@@ -32,21 +31,22 @@ from config import (
 )
 from embedder import embed_query
 from retrievers import RETRIEVERS
+from stores import open_store
 
 # The model intermittently emits full-width 【5】 instead of [5] - same
 # citation, different bracket - so both forms are accepted. A mixed pair
 # like [5】 is tolerated rather than treated as a separate case.
 CITATION_RE = re.compile(r"[\[【](\d+)[\]】]")
 
-_index = None
+_store = None
 
 
 def _load_index():
-    """chunks + vectors, loaded once and reused across questions."""
-    global _index
-    if _index is None:
-        _index = store.load()
-    return _index
+    """The configured store, opened once and reused across questions."""
+    global _store
+    if _store is None:
+        _store = open_store()
+    return _store
 
 
 def build_prompt(question: str, chunks: list[dict]) -> str:
@@ -79,15 +79,15 @@ def parse_citations(answer: str, chunks: list[dict]) -> tuple[list[dict], list[i
 
 
 def answer(question: str, k: int = ANSWER_K) -> dict:
-    chunks, vectors = _load_index()
-    hits = RETRIEVERS[RETRIEVER](question, chunks, vectors, k)
+    store = _load_index()
+    hits = RETRIEVERS[RETRIEVER](question, store, k)
 
     # MIN_CONTEXT_SCORE is calibrated on question-vs-chunk cosine: the dense
     # floor over the eval set is 0.623. HyDE ranks by the hypothetical instead,
     # and those scores run higher (floor 0.701), so gating on the retriever's
     # own score would quietly change what 0.55 means. Measure the guard on the
     # quantity it was calibrated on, whichever retriever produced the hits.
-    top1_dense = float(vectors[hits[0][1]["id"]] @ embed_query(question))
+    top1_dense = store.dense_score_at(hits[0][1]["id"], embed_query(question))
 
     retrieved = [
         {"rank": i, "score": score, "page": c["page"], "chunk_id": c["id"]}
@@ -160,7 +160,7 @@ def run_all() -> None:
     temperature 0, so this file is expected to change between runs.
     """
     items = json.loads(EVAL_PATH.read_text(encoding="utf-8"))
-    chunks, _ = _load_index()
+    chunks = _load_index().chunks
 
     print(f"\n{len(items)} questions through the full pipeline\n")
     print(f"  {'id':<5} {'category':<12} {'dense':>6} {'outcome':<10} {'cites':>5}  pages cited")

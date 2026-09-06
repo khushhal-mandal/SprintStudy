@@ -1,0 +1,29 @@
+# Postgres with pgvector for the study index.
+#
+# The tag is pinned to an exact pgvector release rather than :latest or :pg17,
+# because a version bump that changed vector arithmetic would move retrieval
+# numbers with nothing in this repo to explain why.
+services:
+  db:
+    image: pgvector/pgvector:0.8.6-pg17
+    container_name: study-pg
+    environment:
+      POSTGRES_USER: study
+      POSTGRES_PASSWORD: study
+      POSTGRES_DB: study
+    ports:
+      - "5432:5432"
+    volumes:
+      # Named volume so the index survives a container restart - re-ingesting
+      # a 296-page PDF costs minutes.
+      - study-pgdata:/var/lib/postgresql/data
+      # Applied automatically on first initialisation of an empty volume.
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U study -d study"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  study-pgdata:
