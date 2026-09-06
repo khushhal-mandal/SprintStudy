@@ -150,9 +150,18 @@ def run(items: list[dict], chunks: list[dict], vectors: np.ndarray, k: int) -> l
 
 def print_table(rows: list[dict], k: int) -> None:
     print(f"\nper-question results (K={k})\n")
+
+    expected = {
+        r["id"]: ",".join(str(p) for p in r["expected_pages"]) if r["answerable"] else "-"
+        for r in rows
+    }
+    pages = {r["id"]: " ".join(str(p) for p in r["top_pages"]) for r in rows}
+    ew = max(len("expected"), *(len(s) for s in expected.values()))
+    pw = max(len(f"top-{k} pages"), *(len(s) for s in pages.values()))
+
     head = (
-        f"  {'':1} {'id':<6} {'category':<12} {'expected':<12} "
-        f"{'top-' + str(k) + ' pages':<24} {'rank':>4} {'RR':>5} {'top1':>6}"
+        f"  {'':1} {'id':<5} {'category':<12} {'expected':<{ew}} "
+        f"{'top-' + str(k) + ' pages':<{pw}} {'rank':>4} {'RR':>5} {'top1':>6}"
     )
     print(head)
     print(f"  {'-' * (len(head) - 2)}")
@@ -160,17 +169,14 @@ def print_table(rows: list[dict], k: int) -> None:
     for r in rows:
         if r["answerable"]:
             mark = "." if r["rank"] else "X"
-            expected = ",".join(str(p) for p in r["expected_pages"])
             rank = str(r["rank"]) if r["rank"] else "-"
             rr = f"{r['rr']:.3f}"
         else:
-            mark = " "
-            expected, rank, rr = "-", "-", "-"
+            mark, rank, rr = " ", "-", "-"
 
-        pages = " ".join(str(p) for p in r["top_pages"])
         print(
-            f"  {mark:1} {r['id']:<6} {r['category']:<12} {expected:<12} "
-            f"{pages:<24} {rank:>4} {rr:>5} {r['top1_score']:>6.3f}"
+            f"  {mark:1} {r['id']:<5} {r['category']:<12} {expected[r['id']]:<{ew}} "
+            f"{pages[r['id']]:<{pw}} {rank:>4} {rr:>5} {r['top1_score']:>6.3f}"
         )
     print("\n  X = no expected page in the top K")
 
