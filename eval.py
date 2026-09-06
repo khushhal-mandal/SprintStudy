@@ -1,9 +1,11 @@
 """Measure retrieval against the eval set.
 
-Reports recall@K, recall@1 and MRR over the answerable items, and the top-1
-similarity distribution for answerable vs unanswerable items. That second part
-is what milestone 3's refusal threshold keys on: if the two distributions
-overlap, no single threshold can separate answering from refusing.
+Reports recall@K, recall@1 and MRR over the answerable items, a stricter
+recall for multi_page items that requires every cluster to be represented, and
+the top-1 similarity distribution for answerable vs unanswerable items.
+
+Those last two distributions overlap on this eval set, which is why refusal
+lives in the grounding prompt rather than in a cut on the similarity score.
 
 usage: python eval.py [eval.json]
 """
@@ -36,6 +38,10 @@ from printed page to PDF page.
 
 category is one of: verbatim | paraphrase | multi_page | unanswerable
 Unanswerable items take "expected_pages": [], "answerable": false.
+
+multi_page items also need "clusters": a list of page lists partitioning
+expected_pages into the distinct parts of the document the answer needs, e.g.
+"clusters": [[96, 97, 98], [99, 100, 101, 102]]
 """
 
 
@@ -101,6 +107,38 @@ def load_items(path: Path, indexed_pages: set[int]) -> list[dict]:
             errors.append(f"{where}: category 'unanswerable' and answerable=false must agree")
         if category == "multi_page" and len(pages) < 2:
             warnings.append(f"{where}: category is multi_page but only {len(pages)} page listed")
+
+        # Clusters carve expected_pages into the distinct parts of the document
+        # an answer needs. They cannot be derived - m01's two halves sit in
+        # different chapters, m03's sit in adjacent sections of the same one -
+        # so they are declared, and required, rather than guessed at.
+        clusters = item.get("clusters")
+        if category == "multi_page":
+            if clusters is None:
+                errors.append(f"{where}: multi_page item needs a 'clusters' field")
+            elif (
+                not isinstance(clusters, list)
+                or len(clusters) < 2
+                or not all(
+                    isinstance(c, list)
+                    and c
+                    and all(isinstance(p, int) and not isinstance(p, bool) for p in c)
+                    for c in clusters
+                )
+            ):
+                errors.append(f"{where}: 'clusters' must be 2+ non-empty lists of ints")
+            else:
+                union = {p for c in clusters for p in c}
+                if union != set(pages):
+                    missing = sorted(set(pages) - union)
+                    extra = sorted(union - set(pages))
+                    errors.append(
+                        f"{where}: clusters must partition expected_pages exactly "
+                        f"(missing from clusters: {missing or 'none'}, "
+                        f"not in expected_pages: {extra or 'none'})"
+                    )
+        elif clusters is not None:
+            errors.append(f"{where}: 'clusters' is only valid on multi_page items")
 
         for p in pages:
             if p not in indexed_pages:
@@ -211,6 +249,40 @@ def print_metrics(rows: list[dict], k: int) -> None:
             )
 
 
+def print_strict_multi_page(rows: list[dict], k: int) -> None:
+    """Score multi_page items so a hit needs every cluster represented.
+
+    The lenient number counts a hit on any single matching page, which a wide
+    expected_pages list makes easy. This asks what the category was written to
+    ask: did retrieval surface all the distinct parts the answer draws on?
+
+    There is no strict recall@1 - with two or more clusters it is 0 by
+    construction, so it would report nothing.
+    """
+    items = [r for r in rows if r["category"] == "multi_page"]
+    if not items:
+        return
+
+    print(f"\nmulti_page strict recall@{k} (a hit needs every cluster present)")
+    hits = 0
+    for r in items:
+        top = set(r["top_pages"])
+        n = len(r["clusters"])
+        covered = sum(1 for c in r["clusters"] if top & set(c))
+        hits += covered == n
+        print(
+            f"  {r['id']:<5} {n} clusters   {covered}/{n} covered   "
+            f"{'HIT' if covered == n else 'MISS'}"
+        )
+
+    lenient = sum(1 for r in items if r["rank"])
+    total = len(items)
+    print(
+        f"  strict {hits / total:.3f} ({hits}/{total})   "
+        f"lenient {lenient / total:.3f} ({lenient}/{total})"
+    )
+
+
 def _stats(scores: list[float]) -> str:
     a = np.array(scores)
     return (
@@ -246,42 +318,8 @@ def print_separation(rows: list[dict]) -> None:
             f"\n  OVERLAP: lowest answerable {lo:.3f} <= highest unanswerable {hi:.3f} "
             f"({overlap} items in the overlap band)"
         )
-        print("  no single threshold separates these - milestone 3 will trade one error for the other")
-
-    _print_sweep(yes, no)
-
-
-def _print_sweep(yes: list[float], no: list[float]) -> None:
-    """Cost of each candidate refusal threshold, in both directions."""
-    total = len(yes) + len(no)
-    scores = sorted(set(yes + no))
-    candidates = [(a + b) / 2 for a, b in zip(scores, scores[1:])]
-    if not candidates:
-        return
-
-    scored = [
-        (t, sum(1 for s in yes if s < t), sum(1 for s in no if s >= t)) for t in candidates
-    ]
-    # Fewest total errors; ties broken by the widest margin to the nearest
-    # observed score, so the pick is the most robust one rather than the highest.
-    best_t, best_refused, best_answered = min(
-        scored, key=lambda x: (x[1] + x[2], -min(abs(x[0] - s) for s in scores))
-    )
-
-    print("\nrefusal threshold sweep (answer if top1 >= t, else refuse)")
-    print(f"  {'t':>6} {'answerable refused':>19} {'unanswerable answered':>22} {'correct':>9}")
-
-    step = max(1, len(scored) // 8)
-    shown = scored[::step]
-    if (best_t, best_refused, best_answered) not in shown:
-        shown = sorted(shown + [(best_t, best_refused, best_answered)])
-
-    for t, refused, answered in shown:
-        mark = "  <- best" if t == best_t else ""
-        print(
-            f"  {t:>6.3f} {refused:>19} {answered:>22} "
-            f"{total - refused - answered:>4}/{total}{mark}"
-        )
+        print("  top-1 score is not a usable refusal signal on its own, which is why")
+        print("  refusal is the grounding prompt's job rather than a cut on this number")
 
 
 def main(path: Path) -> None:
@@ -293,6 +331,7 @@ def main(path: Path) -> None:
     print(f"\n{len(items)} eval items against {len(chunks)} chunks")
     print_table(rows, EVAL_K)
     print_metrics(rows, EVAL_K)
+    print_strict_multi_page(rows, EVAL_K)
     print_separation(rows)
     print()
 

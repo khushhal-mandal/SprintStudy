@@ -140,6 +140,17 @@
       76,
       77
     ],
+    "clusters": [
+      [
+        67,
+        68
+      ],
+      [
+        75,
+        76,
+        77
+      ]
+    ],
     "question": "When does picking the largest coin first fail to give the fewest coins, and what technique fixes it?"
   },
   {
@@ -156,6 +167,20 @@
       269,
       270
     ],
+    "clusters": [
+      [
+        99,
+        100,
+        101,
+        102
+      ],
+      [
+        267,
+        268,
+        269,
+        270
+      ]
+    ],
     "question": "Beyond plain range sums, what other kinds of queries can a segment tree be made to answer?"
   },
   {
@@ -170,6 +195,19 @@
       100,
       101,
       102
+    ],
+    "clusters": [
+      [
+        96,
+        97,
+        98
+      ],
+      [
+        99,
+        100,
+        101,
+        102
+      ]
     ],
     "question": "How do binary indexed trees and segment trees compare for range queries, and when would you pick one over the other?"
   },
