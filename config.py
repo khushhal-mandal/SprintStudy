@@ -50,7 +50,21 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "openai/gpt-oss-120b"
 LLM_TEMPERATURE = 0.0
 LLM_MAX_TOKENS = 512
-LLM_TIMEOUT = 30
+
+# requests' timeout is per socket operation, not per call: a response that
+# stalls after its headers arrive, or trickles a byte before each deadline,
+# never trips it. That hung a quiz run for 18 minutes with an open connection
+# and no CPU. Connect and read are bounded separately, and LLM_DEADLINE bounds
+# the whole call regardless of how the bytes arrive.
+LLM_CONNECT_TIMEOUT = 10
+LLM_READ_TIMEOUT = 30
+LLM_DEADLINE = 120
+
+# Groq's 429 body says how long to wait, and for a daily-quota breach that can
+# be minutes ("try again in 7m22.368s"). Sleeping that long inside a request
+# handler is the same failure the deadline above exists to prevent, so a wait
+# longer than this is refused outright rather than honoured.
+LLM_MAX_RETRY_WAIT = 60
 
 # The model emits this exact string instead of an answer it cannot ground.
 # A sentinel makes refusal detectable; prose refusals would have to be guessed at.
