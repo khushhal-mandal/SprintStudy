@@ -12,6 +12,7 @@ usage: python quiz.py <start_page> <end_page> [n]
 """
 
 import json
+import random
 import re
 import sys
 from collections import Counter
@@ -22,6 +23,9 @@ import llm
 import store
 from config import (
     QUIZ_DECLINE_SENTINEL,
+    QUIZ_MAX_DOT_RATIO,
+    QUIZ_MIN_ALNUM_RATIO,
+    QUIZ_MIN_CHARS,
     QUIZ_DEFAULT_N,
     QUIZ_MAX_RETRIES,
     QUIZ_OPTIONS,
@@ -114,6 +118,43 @@ def validate(mcq: dict, chunk: dict) -> dict:
     }
 
 
+def usable(text: str) -> tuple[bool, str]:
+    """Structural check before an LLM call is spent on a chunk.
+
+    A backstop for the model's own NO_QUESTION sentinel, which let a
+    contents-page question through on the first run. This judges shape rather
+    than content, so it cannot be talked out of a decision.
+    """
+    if len(text) < QUIZ_MIN_CHARS:
+        return False, f"only {len(text)} chars"
+
+    dots = text.count(".") / len(text)
+    if dots > QUIZ_MAX_DOT_RATIO:
+        return False, f"dot leaders {dots:.0%}"
+
+    alnum = sum(c.isalnum() for c in text) / len(text)
+    if alnum < QUIZ_MIN_ALNUM_RATIO:
+        return False, f"alphanumeric density {alnum:.0%}"
+
+    return True, ""
+
+
+def shuffle_options(mcq: dict, rng: random.Random) -> dict:
+    """Randomise option order and re-point answer_index at the correct text.
+
+    The model has a strong positional bias - it put the correct answer at A in
+    4 of 5 questions on the first run, which a student can exploit without
+    reading anything. Seeded per chunk so a regenerated quiz is reproducible.
+    Options are validated distinct, so index() is unambiguous.
+    """
+    correct = mcq["options"][mcq["answer_index"]]
+    options = list(mcq["options"])
+    rng.shuffle(options)
+    mcq["options"] = options
+    mcq["answer_index"] = options.index(correct)
+    return mcq
+
+
 def generate_one(chunk: dict) -> tuple[dict | None, str, int]:
     """Return (mcq or None, outcome, retries). Outcome is ok|declined|rejected."""
     prompt = QUIZ_PROMPT.format(sentinel=QUIZ_DECLINE_SENTINEL, passage=chunk["text"])
@@ -124,7 +165,8 @@ def generate_one(chunk: dict) -> tuple[dict | None, str, int]:
         if QUIZ_DECLINE_SENTINEL in raw:
             return None, "declined", attempt
         try:
-            return validate(parse(raw), chunk), "ok", attempt
+            mcq = validate(parse(raw), chunk)
+            return shuffle_options(mcq, random.Random(chunk["id"])), "ok", attempt
         except Rejected as exc:
             last = str(exc)
 
@@ -152,6 +194,12 @@ def build(chunks: list[dict], start: int, end: int, n: int) -> tuple[list[dict],
             if candidate["id"] in used:
                 continue
             used.add(candidate["id"])
+
+            ok, why = usable(candidate["text"])
+            if not ok:
+                stats["filtered"] += 1
+                print(f"    chunk #{candidate['id']}: pre-filtered ({why})")
+                continue
 
             mcq, outcome, retries = generate_one(candidate)
             stats[outcome] += 1
@@ -188,6 +236,7 @@ def print_quiz(quiz: list[dict]) -> None:
 def print_stats(quiz: list[dict], stats: Counter) -> None:
     """Cheap tells that a generated quiz is bad. Reported, not asserted away."""
     print(f"\n{len(quiz)} questions")
+    print(f"  pre-filtered  {stats['filtered']}")
     print(f"  declined      {stats['declined']}")
     print(f"  rejected      {stats['rejected']}")
     print(f"  retries       {stats['retries']}")
@@ -204,7 +253,7 @@ def print_stats(quiz: list[dict], stats: Counter) -> None:
     )
     leaks = [q["source_chunk_id"] for q in quiz if _leaks_page(q)]
 
-    print(f"  answer spread {spread}  (want roughly even)")
+    print(f"  answer spread {spread}  (shuffled after generation)")
     print(f"  correct is longest option  {longest}/{len(quiz)}  (want about 1 in 4)")
     print(f"  wrote a page number        {len(leaks)}  {leaks or ''}")
 

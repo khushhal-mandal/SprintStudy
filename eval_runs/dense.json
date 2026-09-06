@@ -30,7 +30,7 @@
     },
     "multi_page_strict": 1.0,
     "answerable_top1_dense_mean": 0.7685225447018941,
-    "unanswerable_top1_dense_mean": 0.6640423178672791
+    "unanswerable_top1_dense_mean": 0.6663741827011108
   },
   "results": [
     {
@@ -192,9 +192,9 @@
       "top_pages": [
         256,
         259,
-        263,
-        86,
-        156
+        156,
+        279,
+        263
       ],
       "rank": 1,
       "rr": 1.0,
@@ -215,7 +215,7 @@
         131,
         131,
         127,
-        165
+        292
       ],
       "rank": null,
       "rr": 0.0,
@@ -236,7 +236,7 @@
         141,
         180,
         147,
-        284
+        140
       ],
       "rank": 4,
       "rr": 0.25,
@@ -398,15 +398,15 @@
       "expected_pages": [],
       "top_pages": [
         243,
+        242,
         56,
         78,
-        242,
-        3
+        230
       ],
       "rank": null,
       "rr": 0.0,
-      "top1_score": 0.707641,
-      "top1_dense": 0.7076
+      "top1_score": 0.711981,
+      "top1_dense": 0.712
     },
     {
       "id": "u04",
@@ -415,10 +415,10 @@
       "expected_pages": [],
       "top_pages": [
         242,
-        21,
         82,
         294,
-        229
+        25,
+        263
       ],
       "rank": null,
       "rr": 0.0,
@@ -439,8 +439,8 @@
       ],
       "rank": null,
       "rr": 0.0,
-      "top1_score": 0.64371,
-      "top1_dense": 0.6437
+      "top1_score": 0.651029,
+      "top1_dense": 0.651
     }
   ]
 }

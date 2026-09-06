@@ -163,3 +163,84 @@ Reply with a single JSON object and no other text:
 Passage:
 {passage}
 """
+
+# --- PDF glyph repair ---
+
+# The book is typeset with Fourier math fonts plus AMS symbol fonts, whose
+# built-in Type 1 encodings pdfminer cannot resolve to unicode. It emits
+# "(cid:N)" instead, corrupting 110 of 680 chunks across 62 pages.
+#
+# Every code was enumerated from the PDF and identified from its font and
+# surrounding text. Fourier-Math-Extension is a CMEX-style extension font, so
+# the same delimiter appears at several codes in different display sizes -
+# hence the repeated brackets below.
+CID_MAP = {
+    # Fourier-Math-Extension: large operators and delimiters
+    88: "∑",   # sum, "Each sum of the form n (cid:88) xk=1k+2k+..."
+    80: "∑",   # sum, smaller size
+    89: "∏",   # product, "The factorial n! can be defined n (cid:89) x=1*2*3*..."
+    112: "√",  # radical, "Binet's formula: (cid:112) (1+ 5)n"
+    113: "√",  # radical, larger size
+    40: "{",        # cases brace, "(cid:40) true x=0 possible(x,0)= false"
+    183: "[",       # matrix bracket, "(cid:183) 6 1 4(cid:184)"
+    184: "]",
+    195: "(",       # binomial delimiters, "(cid:195) (cid:33) n n-1"
+    33: ")",
+    161: "(",       # binomial delimiters, smaller
+    162: ")",
+    179: "(",       # parenthesised quotient, "(cid:179)a(cid:180) log ="
+    180: ")",
+    # Underbrace pieces. Four codes assemble one horizontal brace, so each
+    # carries no text of its own - dropped rather than repeated four times.
+    122: "",
+    123: "",
+    124: "",
+    125: "",
+    # Fourier-Math-Symbols
+    48: "′",   # prime, "p(cid:48) (u)=p(u+h)"
+    98: "⌊",   # floor left, "(cid:98)x(cid:99) rounds the number x down"
+    99: "⌋",   # floor right
+    100: "⌈",  # ceiling left, "(cid:100)x(cid:101) rounds the number up"
+    101: "⌉",  # ceiling right
+    59: "∅",   # empty set, "the symbol (cid:59) denotes an empty set"
+    54: "≠",   # see NEGATION_PAIR below
+    # Tiling notation, section 7.6. Page 86 states the representation uses "the
+    # upper square of a vertical tile", which fixes 117 as the upper half; the
+    # example grid stacks 117 directly above 116 in every column.
+    117: "⊓",  # upper square of a vertical tile
+    116: "⊔",  # lower square
+    64: "⊏",   # left square of a horizontal tile (always paired with 65)
+    65: "⊐",   # right square
+    3: "□",    # placeholder square standing for any of the other three
+    # Fourier-Math-BlackBoard
+    78: "ℕ",   # N, "(cid:78) (natural numbers)"
+    90: "ℤ",   # Z, "(cid:90) (integers)"
+    81: "ℚ",   # Q, "(cid:81) (rational numbers)"
+    82: "ℝ",   # R, "(cid:82) (real numbers)"
+    # Fourier-Math-Letters-Italic
+    178: "ε",  # epsilon, "|a-b|<(cid:178), where (cid:178) is a small number"
+    # MSBM10
+    45: "∤",   # does not divide, "otherwise we write a(cid:45)b"
+}
+
+# cid 54 is a negation slash drawn *over* the following "=", so the raw stream
+# reads "x(cid:54)=0" and means "x != 0". Substituting the code alone would give
+# "x!==0", so the pair is replaced together. Getting this wrong inverts meaning.
+NEGATION_PAIR = ("(cid:54)=", "≠")
+
+# Front matter: title page, blank, contents, preface. Body text starts here.
+# Skipping keeps PDF page numbering intact for everything after it, so page
+# numbers already recorded in eval.json stay valid.
+FIRST_CONTENT_PAGE = 11
+
+# Structural pre-filter, in front of the model's NO_QUESTION sentinel rather
+# than instead of it: on the first run the sentinel let a contents-page question
+# through, so it needs a backstop that does not depend on the model's judgement.
+#
+# Thresholds sit in the measured gap. Over the clean index the dot-leader ratio
+# tops out at 0.051 and alphanumeric density bottoms out at 0.530; the
+# contents-page chunks ran 0.318-0.356 and 0.243-0.311 respectively. Nothing
+# lies between, so these reject every contents chunk and no real one.
+QUIZ_MIN_CHARS = 200
+QUIZ_MAX_DOT_RATIO = 0.15
+QUIZ_MIN_ALNUM_RATIO = 0.45

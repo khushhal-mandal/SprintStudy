@@ -30,7 +30,7 @@
     },
     "multi_page_strict": 1.0,
     "answerable_top1_dense_mean": 0.7346225341161092,
-    "unanswerable_top1_dense_mean": 0.6301607608795166
+    "unanswerable_top1_dense_mean": 0.6389511942863464
   },
   "results": [
     {
@@ -152,7 +152,7 @@
         96,
         31,
         268,
-        113
+        271
       ],
       "rank": null,
       "rr": 0.0,
@@ -172,9 +172,9 @@
       "top_pages": [
         64,
         42,
-        3,
         54,
-        38
+        38,
+        42
       ],
       "rank": 2,
       "rr": 0.5,
@@ -366,7 +366,7 @@
         98,
         295,
         87,
-        4,
+        77,
         77
       ],
       "rank": null,
@@ -414,16 +414,16 @@
       "answerable": false,
       "expected_pages": [],
       "top_pages": [
-        6,
-        6,
         295,
-        6,
-        65
+        65,
+        294,
+        258,
+        293
       ],
       "rank": null,
       "rr": 0.0,
-      "top1_score": 0.769401,
-      "top1_dense": 0.5741
+      "top1_score": 0.765271,
+      "top1_dense": 0.618
     },
     {
       "id": "u05",

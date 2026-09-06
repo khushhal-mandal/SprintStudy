@@ -19,9 +19,15 @@ Everything is developed and measured against:
 generated index in `data/`. Nothing here redistributes the book — supply your own copy
 to reproduce the numbers, or point the pipeline at any text-based PDF.
 
-Rough shape of the indexed corpus, for context on the eval numbers: 277 of 296 pages
-carried extractable text, producing 680 chunks averaging 685 characters (max 407 tokens
-against the embedding model's 512 limit).
+Rough shape of the indexed corpus, for context on the eval numbers: front matter is
+skipped and 271 of the remaining 286 pages carry extractable text, producing 655 chunks
+averaging 684 characters (max 365 tokens against the embedding model's 512 limit).
+
+The book is typeset with Fourier and AMS math fonts whose built-in Type 1 encodings
+pdfminer cannot resolve, so every square root, floor bracket and summation originally
+extracted as a `(cid:N)` marker — corrupting 110 of 680 chunks across 62 pages. All 36
+distinct codes were enumerated from the PDF, identified from their font and surrounding
+text, and are repaired at ingestion by `CID_MAP` in `config.py`.
 
 ## Setup
 
@@ -59,7 +65,7 @@ same questions and the same index.
 |---|---|---|---|
 | recall@5 | 0.800 | 0.800 | **0.933** |
 | recall@1 | 0.600 | 0.467 | **0.867** |
-| MRR | 0.667 | 0.633 | **0.900** |
+| MRR | 0.667 | 0.611 | **0.900** |
 | paraphrase recall@1 | 0.286 | 0.000 | **0.714** |
 
 HyDE wins because of what the eval set is built to expose. Every dense failure is a
