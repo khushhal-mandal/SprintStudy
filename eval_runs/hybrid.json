@@ -1,0 +1,446 @@
+{
+  "retriever": "hybrid",
+  "k": 5,
+  "summary": {
+    "overall": {
+      "n": 15,
+      "recall@5": 0.8,
+      "recall@1": 0.4666666666666667,
+      "mrr": 0.6333333333333333
+    },
+    "by_category": {
+      "verbatim": {
+        "n": 5,
+        "recall@5": 1.0,
+        "recall@1": 0.8,
+        "mrr": 0.9
+      },
+      "paraphrase": {
+        "n": 7,
+        "recall@5": 0.5714285714285714,
+        "recall@1": 0.0,
+        "mrr": 0.2857142857142857
+      },
+      "multi_page": {
+        "n": 3,
+        "recall@5": 1.0,
+        "recall@1": 1.0,
+        "mrr": 1.0
+      }
+    },
+    "multi_page_strict": 1.0,
+    "answerable_top1_dense_mean": 0.7486701369285583,
+    "unanswerable_top1_dense_mean": 0.6539571642875671
+  },
+  "results": [
+    {
+      "id": "v01",
+      "category": "verbatim",
+      "answerable": true,
+      "expected_pages": [
+        96,
+        97,
+        98
+      ],
+      "top_pages": [
+        96,
+        96,
+        97,
+        98,
+        98
+      ],
+      "rank": 1,
+      "rr": 1.0,
+      "top1_score": 0.016261,
+      "top1_dense": 0.8336
+    },
+    {
+      "id": "v02",
+      "category": "verbatim",
+      "answerable": true,
+      "expected_pages": [
+        99,
+        100,
+        101,
+        102
+      ],
+      "top_pages": [
+        273,
+        99,
+        286,
+        268,
+        274
+      ],
+      "rank": 2,
+      "rr": 0.5,
+      "top1_score": 0.016393,
+      "top1_dense": 0.8414
+    },
+    {
+      "id": "v03",
+      "category": "verbatim",
+      "answerable": true,
+      "expected_pages": [
+        155,
+        156,
+        157
+      ],
+      "top_pages": [
+        156,
+        155,
+        156,
+        155,
+        156
+      ],
+      "rank": 1,
+      "rr": 1.0,
+      "top1_score": 0.016261,
+      "top1_dense": 0.8656
+    },
+    {
+      "id": "v04",
+      "category": "verbatim",
+      "answerable": true,
+      "expected_pages": [
+        257,
+        258,
+        259
+      ],
+      "top_pages": [
+        258,
+        258,
+        260,
+        260,
+        260
+      ],
+      "rank": 1,
+      "rr": 1.0,
+      "top1_score": 0.016133,
+      "top1_dense": 0.8069
+    },
+    {
+      "id": "v05",
+      "category": "verbatim",
+      "answerable": true,
+      "expected_pages": [
+        159,
+        160,
+        161
+      ],
+      "top_pages": [
+        159,
+        161,
+        168,
+        159,
+        161
+      ],
+      "rank": 1,
+      "rr": 1.0,
+      "top1_score": 0.016393,
+      "top1_dense": 0.888
+    },
+    {
+      "id": "p01",
+      "category": "paraphrase",
+      "answerable": true,
+      "expected_pages": [
+        94,
+        95
+      ],
+      "top_pages": [
+        111,
+        94,
+        64,
+        156,
+        59
+      ],
+      "rank": 2,
+      "rr": 0.5,
+      "top1_score": 0.012667,
+      "top1_dense": 0.6302
+    },
+    {
+      "id": "p02",
+      "category": "paraphrase",
+      "answerable": true,
+      "expected_pages": [
+        41,
+        42,
+        43,
+        44
+      ],
+      "top_pages": [
+        64,
+        38,
+        53,
+        70,
+        37
+      ],
+      "rank": null,
+      "rr": 0.0,
+      "top1_score": 0.016001,
+      "top1_dense": 0.7108
+    },
+    {
+      "id": "p03",
+      "category": "paraphrase",
+      "answerable": true,
+      "expected_pages": [
+        255,
+        256
+      ],
+      "top_pages": [
+        263,
+        256,
+        156,
+        262,
+        262
+      ],
+      "rank": 2,
+      "rr": 0.5,
+      "top1_score": 0.016133,
+      "top1_dense": 0.664
+    },
+    {
+      "id": "p04",
+      "category": "paraphrase",
+      "answerable": true,
+      "expected_pages": [
+        183,
+        184,
+        185
+      ],
+      "top_pages": [
+        62,
+        183,
+        292,
+        188,
+        292
+      ],
+      "rank": 2,
+      "rr": 0.5,
+      "top1_score": 0.015239,
+      "top1_dense": 0.6345
+    },
+    {
+      "id": "p05",
+      "category": "paraphrase",
+      "answerable": true,
+      "expected_pages": [
+        145,
+        146,
+        147
+      ],
+      "top_pages": [
+        287,
+        155,
+        139,
+        171,
+        172
+      ],
+      "rank": null,
+      "rr": 0.0,
+      "top1_score": 0.015165,
+      "top1_dense": 0.692
+    },
+    {
+      "id": "p06",
+      "category": "paraphrase",
+      "answerable": true,
+      "expected_pages": [
+        91,
+        92
+      ],
+      "top_pages": [
+        102,
+        91,
+        85,
+        64,
+        111
+      ],
+      "rank": 2,
+      "rr": 0.5,
+      "top1_score": 0.015141,
+      "top1_dense": 0.6759
+    },
+    {
+      "id": "p07",
+      "category": "paraphrase",
+      "answerable": true,
+      "expected_pages": [
+        87,
+        88
+      ],
+      "top_pages": [
+        266,
+        67,
+        80,
+        31,
+        34
+      ],
+      "rank": null,
+      "rr": 0.0,
+      "top1_score": 0.012739,
+      "top1_dense": 0.5612
+    },
+    {
+      "id": "m01",
+      "category": "multi_page",
+      "answerable": true,
+      "expected_pages": [
+        67,
+        68,
+        75,
+        76,
+        77
+      ],
+      "top_pages": [
+        67,
+        67,
+        68,
+        68,
+        75
+      ],
+      "rank": 1,
+      "rr": 1.0,
+      "top1_score": 0.016133,
+      "top1_dense": 0.7381
+    },
+    {
+      "id": "m02",
+      "category": "multi_page",
+      "answerable": true,
+      "expected_pages": [
+        99,
+        100,
+        101,
+        102,
+        267,
+        268,
+        269,
+        270
+      ],
+      "top_pages": [
+        99,
+        99,
+        102,
+        273,
+        267
+      ],
+      "rank": 1,
+      "rr": 1.0,
+      "top1_score": 0.016393,
+      "top1_dense": 0.8202
+    },
+    {
+      "id": "m03",
+      "category": "multi_page",
+      "answerable": true,
+      "expected_pages": [
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102
+      ],
+      "top_pages": [
+        99,
+        99,
+        96,
+        104,
+        267
+      ],
+      "rank": 1,
+      "rr": 1.0,
+      "top1_score": 0.016393,
+      "top1_dense": 0.8676
+    },
+    {
+      "id": "u01",
+      "category": "unanswerable",
+      "answerable": false,
+      "expected_pages": [],
+      "top_pages": [
+        87,
+        24,
+        89,
+        98,
+        247
+      ],
+      "rank": null,
+      "rr": 0.0,
+      "top1_score": 0.016393,
+      "top1_dense": 0.7022
+    },
+    {
+      "id": "u02",
+      "category": "unanswerable",
+      "answerable": false,
+      "expected_pages": [],
+      "top_pages": [
+        272,
+        173,
+        268,
+        272,
+        154
+      ],
+      "rank": null,
+      "rr": 0.0,
+      "top1_score": 0.015889,
+      "top1_dense": 0.6078
+    },
+    {
+      "id": "u03",
+      "category": "unanswerable",
+      "answerable": false,
+      "expected_pages": [],
+      "top_pages": [
+        56,
+        77,
+        75,
+        87,
+        293
+      ],
+      "rank": null,
+      "rr": 0.0,
+      "top1_score": 0.015417,
+      "top1_dense": 0.7055
+    },
+    {
+      "id": "u04",
+      "category": "unanswerable",
+      "answerable": false,
+      "expected_pages": [],
+      "top_pages": [
+        242,
+        233,
+        38,
+        229,
+        62
+      ],
+      "rank": null,
+      "rr": 0.0,
+      "top1_score": 0.013405,
+      "top1_dense": 0.6259
+    },
+    {
+      "id": "u05",
+      "category": "unanswerable",
+      "answerable": false,
+      "expected_pages": [],
+      "top_pages": [
+        38,
+        239,
+        43,
+        295,
+        256
+      ],
+      "rank": null,
+      "rr": 0.0,
+      "top1_score": 0.015629,
+      "top1_dense": 0.6285
+    }
+  ]
+}

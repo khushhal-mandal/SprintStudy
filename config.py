@@ -73,3 +73,32 @@ Passages:
 Question: {question}
 
 Answer:"""
+
+# --- retrieval variants ---
+
+DEFAULT_RETRIEVER = "dense"
+EVAL_RUNS_DIR = Path(__file__).parent / "eval_runs"
+
+# Okapi BM25. Standard values, not fitted to the eval set.
+BM25_K1 = 1.5
+BM25_B = 0.75
+
+# Dense cosine and BM25 are on incomparable scales, so hybrid fuses ranks
+# rather than scores. RRF_K damps the head of each list; 60 is the usual value.
+RRF_K = 60
+
+# Keyword's share of the fused score. 0.5 is plain unweighted RRF - the
+# textbook baseline, carrying no judgement fitted to these 20 questions.
+HYBRID_WEIGHT = 0.5
+
+# HyDE: answer the question first, then search with the hypothetical answer.
+# Cached so the benchmark is reproducible - generation varies run to run even
+# at temperature 0. Delete the cache file to regenerate.
+HYDE_CACHE_PATH = Path(__file__).parent / "hyde_cache.json"
+HYDE_PROMPT = """Write a short passage that answers the question below, as it would appear
+in a technical reference. Two or three sentences. State it plainly as fact -
+do not hedge and do not say whether you are certain.
+
+Question: {question}
+
+Passage:"""

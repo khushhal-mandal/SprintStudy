@@ -7,9 +7,11 @@ the top-1 similarity distribution for answerable vs unanswerable items.
 Those last two distributions overlap on this eval set, which is why refusal
 lives in the grounding prompt rather than in a cut on the similarity score.
 
-usage: python eval.py [eval.json]
+usage: python eval.py [--retriever dense|hybrid|hyde] [eval.json]
+       python eval.py --compare
 """
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -17,8 +19,9 @@ from pathlib import Path
 import numpy as np
 
 import store
-from config import EVAL_K, EVAL_PATH
+from config import DEFAULT_RETRIEVER, EVAL_K, EVAL_PATH, EVAL_RUNS_DIR
 from embedder import embed_query
+from retrievers import RETRIEVERS
 
 CATEGORIES = ("verbatim", "paraphrase", "multi_page", "unanswerable")
 
@@ -163,22 +166,30 @@ def load_items(path: Path, indexed_pages: set[int]) -> list[dict]:
     return raw
 
 
-def run(items: list[dict], chunks: list[dict], vectors: np.ndarray, k: int) -> list[dict]:
-    """Retrieve for every item and score it."""
+def run(
+    items: list[dict], chunks: list[dict], vectors: np.ndarray, k: int, retrieve
+) -> list[dict]:
+    """Retrieve for every item with the given retriever and score it."""
     rows = []
     for item in items:
-        # embed_query applies QUERY_PREFIX; embed_chunks does not. Questions must
-        # go through this path even though it costs one forward pass per item.
-        hits = store.search(embed_query(item["question"]), chunks, vectors, k)
+        hits = retrieve(item["question"], chunks, vectors, k)
         pages = [c["page"] for _, c in hits]
         expected = set(item["expected_pages"])
-
         rank = next((i for i, p in enumerate(pages, start=1) if p in expected), None)
+
+        # top1_score is whatever the retriever ranked by: a cosine for dense, an
+        # RRF score for hybrid, and for HyDE a cosine against the hypothetical
+        # rather than the question. top1_dense is the same measurement for every
+        # retriever - how close the winning chunk is to the original question -
+        # so it stays comparable across variants and back to the baseline.
+        # embed_query applies QUERY_PREFIX; embed_chunks does not.
+        top1_dense = float(vectors[hits[0][1]["id"]] @ embed_query(item["question"]))
         rows.append(
             {
                 **item,
                 "top_pages": pages,
                 "top1_score": hits[0][0],
+                "top1_dense": top1_dense,
                 "rank": rank,
                 "rr": 1.0 / rank if rank else 0.0,
             }
@@ -199,7 +210,7 @@ def print_table(rows: list[dict], k: int) -> None:
 
     head = (
         f"  {'':1} {'id':<5} {'category':<12} {'expected':<{ew}} "
-        f"{'top-' + str(k) + ' pages':<{pw}} {'rank':>4} {'RR':>5} {'top1':>6}"
+        f"{'top-' + str(k) + ' pages':<{pw}} {'rank':>4} {'RR':>5} {'dense':>6}"
     )
     print(head)
     print(f"  {'-' * (len(head) - 2)}")
@@ -214,7 +225,7 @@ def print_table(rows: list[dict], k: int) -> None:
 
         print(
             f"  {mark:1} {r['id']:<5} {r['category']:<12} {expected[r['id']]:<{ew}} "
-            f"{pages[r['id']]:<{pw}} {rank:>4} {rr:>5} {r['top1_score']:>6.3f}"
+            f"{pages[r['id']]:<{pw}} {rank:>4} {rr:>5} {r['top1_dense']:>6.3f}"
         )
     print("\n  X = no expected page in the top K")
 
@@ -292,10 +303,10 @@ def _stats(scores: list[float]) -> str:
 
 
 def print_separation(rows: list[dict]) -> None:
-    yes = [r["top1_score"] for r in rows if r["answerable"]]
-    no = [r["top1_score"] for r in rows if not r["answerable"]]
+    yes = [r["top1_dense"] for r in rows if r["answerable"]]
+    no = [r["top1_dense"] for r in rows if not r["answerable"]]
 
-    print("\ntop-1 similarity distribution")
+    print("\ntop-1 dense similarity distribution (question vs winning chunk)")
     print(f"  {'':<13}{'n':>3} {'min':>7} {'p25':>7} {'med':>7} {'mean':>7} {'p75':>7} {'max':>7}")
     if yes:
         print(f"  {'answerable':<13}{_stats(yes)}")
@@ -322,19 +333,177 @@ def print_separation(rows: list[dict]) -> None:
         print("  refusal is the grounding prompt's job rather than a cut on this number")
 
 
-def main(path: Path) -> None:
+def summarise(rows: list[dict], k: int) -> dict:
+    """Headline and per-category metrics, for saving and for --compare."""
+    answerable = [r for r in rows if r["answerable"]]
+    n = len(answerable)
+
+    def block(group):
+        g = len(group)
+        if not g:
+            return None
+        return {
+            "n": g,
+            f"recall@{k}": sum(1 for r in group if r["rank"]) / g,
+            "recall@1": sum(1 for r in group if r["rank"] == 1) / g,
+            "mrr": sum(r["rr"] for r in group) / g,
+        }
+
+    strict = [r for r in rows if r["category"] == "multi_page"]
+    strict_hits = sum(
+        1
+        for r in strict
+        if all(set(r["top_pages"]) & set(c) for c in r["clusters"])
+    )
+
+    return {
+        "overall": block(answerable),
+        "by_category": {
+            cat: block([r for r in answerable if r["category"] == cat])
+            for cat in CATEGORIES
+            if cat != "unanswerable"
+            and any(r["category"] == cat for r in answerable)
+        },
+        "multi_page_strict": strict_hits / len(strict) if strict else None,
+        "answerable_top1_dense_mean": (
+            sum(r["top1_dense"] for r in answerable) / n if n else None
+        ),
+        "unanswerable_top1_dense_mean": (
+            sum(r["top1_dense"] for r in rows if not r["answerable"])
+            / max(1, len(rows) - n)
+        ),
+    }
+
+
+def save_run(name: str, rows: list[dict], k: int) -> Path:
+    EVAL_RUNS_DIR.mkdir(exist_ok=True)
+    path = EVAL_RUNS_DIR / f"{name}.json"
+    path.write_text(
+        json.dumps(
+            {
+                "retriever": name,
+                "k": k,
+                "summary": summarise(rows, k),
+                "results": [
+                    {
+                        "id": r["id"],
+                        "category": r["category"],
+                        "answerable": r["answerable"],
+                        "expected_pages": r["expected_pages"],
+                        "top_pages": r["top_pages"],
+                        "rank": r["rank"],
+                        "rr": round(r["rr"], 4),
+                        "top1_score": round(r["top1_score"], 6),
+                        "top1_dense": round(r["top1_dense"], 4),
+                    }
+                    for r in rows
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def compare() -> None:
+    """Every saved run side by side, and which items each variant moves."""
+    paths = sorted(EVAL_RUNS_DIR.glob("*.json")) if EVAL_RUNS_DIR.exists() else []
+    if not paths:
+        raise SystemExit(
+            f"No saved runs in {EVAL_RUNS_DIR.name}/. "
+            "Run: python eval.py --retriever dense|hybrid|hyde"
+        )
+
+    runs = [json.loads(p.read_text(encoding="utf-8")) for p in paths]
+    # Baseline first, then the variants, so deltas read left to right.
+    runs.sort(key=lambda r: (r["retriever"] != "dense", r["retriever"]))
+    names = [r["retriever"] for r in runs]
+    k = runs[0]["k"]
+
+    print(f"\n{len(runs)} runs, K={k}\n")
+    w = 9
+    print(f"  {'metric':<24}" + "".join(f"{n:>{w}}" for n in names))
+    print(f"  {'-' * (24 + w * len(names))}")
+
+    for label, key in ((f"recall@{k}", f"recall@{k}"), ("recall@1", "recall@1"), ("MRR", "mrr")):
+        cells = "".join(f"{r['summary']['overall'][key]:>{w}.3f}" for r in runs)
+        print(f"  {label:<24}{cells}")
+
+    cells = "".join(
+        f"{r['summary']['multi_page_strict']:>{w}.3f}"
+        if r["summary"]["multi_page_strict"] is not None
+        else f"{'-':>{w}}"
+        for r in runs
+    )
+    print(f"  {'multi_page strict':<24}{cells}")
+
+    print()
+    for cat in CATEGORIES:
+        if cat == "unanswerable" or not any(cat in r["summary"]["by_category"] for r in runs):
+            continue
+        for label, key in ((f"recall@{k}", f"recall@{k}"), ("recall@1", "recall@1")):
+            cells = "".join(
+                f"{r['summary']['by_category'][cat][key]:>{w}.3f}"
+                if cat in r["summary"]["by_category"]
+                else f"{'-':>{w}}"
+                for r in runs
+            )
+            print(f"  {cat + ' ' + label:<24}{cells}")
+
+    print()
+    print(f"  {'mean top1 dense, answerable':<24}"
+          + "".join(f"{r['summary']['answerable_top1_dense_mean']:>{w}.3f}" for r in runs))
+    print(f"  {'  same, unanswerable':<24}"
+          + "".join(f"{r['summary']['unanswerable_top1_dense_mean']:>{w}.3f}" for r in runs))
+
+    # Per-question ranks. A dash is a miss; moved rows are the point of this.
+    by_id = {r["retriever"]: {x["id"]: x for x in r["results"]} for r in runs}
+    order = [x["id"] for x in runs[0]["results"]]
+
+    print(f"\n  rank of first expected page (- = not in top {k})\n")
+    print(f"  {'id':<5} {'category':<12}" + "".join(f"{n:>9}" for n in names) + "   moved")
+    print(f"  {'-' * (17 + 9 * len(names) + 8)}")
+
+    for qid in order:
+        rows = [by_id[n][qid] for n in names]
+        if not rows[0]["answerable"]:
+            continue
+        ranks = [r["rank"] for r in rows]
+        cells = "".join(f"{(str(x) if x else '-'):>9}" for x in ranks)
+        moved = "   <-" if len(set(ranks)) > 1 else ""
+        print(f"  {qid:<5} {rows[0]['category']:<12}{cells}{moved}")
+    print()
+
+
+def main(path: Path, retriever: str) -> None:
     chunks, vectors = store.load()
     items = load_items(path, {c["page"] for c in chunks})
 
-    rows = run(items, chunks, vectors, EVAL_K)
+    rows = run(items, chunks, vectors, EVAL_K, RETRIEVERS[retriever])
 
-    print(f"\n{len(items)} eval items against {len(chunks)} chunks")
+    print(f"\n{len(items)} eval items against {len(chunks)} chunks  [retriever: {retriever}]")
     print_table(rows, EVAL_K)
     print_metrics(rows, EVAL_K)
     print_strict_multi_page(rows, EVAL_K)
     print_separation(rows)
+    print(f"\nrun saved to {save_run(retriever, rows, EVAL_K)}")
     print()
 
 
 if __name__ == "__main__":
-    main(Path(sys.argv[1]) if len(sys.argv) > 1 else EVAL_PATH)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("eval_set", nargs="?", type=Path, default=EVAL_PATH)
+    parser.add_argument(
+        "--retriever", choices=sorted(RETRIEVERS), default=DEFAULT_RETRIEVER
+    )
+    parser.add_argument(
+        "--compare", action="store_true", help="show every saved run side by side"
+    )
+    args = parser.parse_args()
+
+    if args.compare:
+        compare()
+    else:
+        main(args.eval_set, args.retriever)

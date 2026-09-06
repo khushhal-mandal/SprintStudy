@@ -31,3 +31,13 @@ def embed_query(text: str) -> np.ndarray:
         QUERY_PREFIX + text,
         normalize_embeddings=True,
     ).astype("float32")
+
+
+def embed_passage(text: str) -> np.ndarray:
+    """(384,) float32, no query prefix.
+
+    For text that plays the role of a document rather than a question - a HyDE
+    hypothetical answer. QUERY_PREFIX corrects a question-shaped vs
+    passage-shaped mismatch, and a passage has no mismatch to correct.
+    """
+    return _get_model().encode(text, normalize_embeddings=True).astype("float32")
