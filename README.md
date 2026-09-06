@@ -7,8 +7,8 @@ The retrieval layer is written from scratch — no LangChain, no LlamaIndex, no 
 vector database. Chunking, embedding, storage and search are all in this repo.
 
 > **Status:** in progress. Milestones 1 (ingestion), 2 (eval harness), 3 (grounded Q&A)
-> 4 (retrieval variants), 5 (quiz generation) and 6 (FastAPI + Postgres) are done.
-> React frontend next.
+> 4 (retrieval variants), 5 (quiz generation), 6 (FastAPI + Postgres) and 7 (React
+> frontend) are done. Docker packaging next.
 
 ## Test document
 
@@ -67,6 +67,23 @@ curl -X POST localhost:8000/quiz/generate -H 'Content-Type: application/json' \
 curl -X POST localhost:8000/quiz/submit -H 'Content-Type: application/json' \
      -d '{"quiz_id":"...","responses":[0,2,1,3,0]}'
 ```
+
+### Frontend
+
+```sh
+cd frontend && npm install && npm run dev     # http://localhost:5173
+```
+
+React with plain `fetch` — no router, no state library, no component library. Vite proxies
+`/api` to the backend, so `api.py` carries no CORS middleware for a dev-only concern.
+
+Citations render as page pills. The marker pattern accepts full-width `【n】` as well as
+`[n]`, because the model emits both — assuming ASCII silently discarded 8 of 14 citations
+during milestone 5.
+
+The quiz view runs against `src/fixtures/quiz.json` (`USE_FIXTURE` in `api.js`). The
+fixture holds real model output captured from a `quiz.py` run, reshaped into the endpoint's
+response shape — `/quiz/generate` has not yet been exercised against a live model.
 
 Four tables: `documents`, `chunks`, `quiz_questions`, `quiz_attempts`. A quiz is a shared
 `quiz_id` across a group of `quiz_questions` rows; `source_chunk_id` is a real foreign key,

@@ -1,0 +1,95 @@
+{
+  "_comment": "Fixture for the quiz view. These are real model outputs, captured from a quiz.py run over pages 93-103, reshaped into the /quiz/generate response shape - the endpoint itself has not been exercised against a live model because the Groq daily quota ran out. Replace with a captured real response once quota returns, and set USE_FIXTURE to false.",
+  "generate": {
+    "quiz_id": "00000000-0000-4000-8000-000000000000",
+    "pages": [
+      93,
+      103
+    ],
+    "stats": {
+      "ok": 5,
+      "rejected": 2,
+      "retries": 2,
+      "filtered": 0,
+      "declined": 0
+    },
+    "questions": [
+      {
+        "position": 0,
+        "question": "According to the example, what is the value of sum(3,6)?",
+        "options": [
+          "13",
+          "14",
+          "12",
+          "15"
+        ],
+        "page": 93
+      },
+      {
+        "position": 1,
+        "question": "Why does the passage state that the number of precalculated values is O(nlogn)?",
+        "options": [
+          "Because each element must be compared with every other element.",
+          "Because there are O(logn) range lengths that are powers of two.",
+          "Because the array size n multiplied by the query count gives O(nlogn).",
+          "Because the recursive formula requires O(logn) steps per element."
+        ],
+        "page": 95
+      },
+      {
+        "position": 2,
+        "question": "According to the passage, what is the time complexity of both the sum and add functions?",
+        "options": [
+          "O(n)",
+          "O(n log n)",
+          "O(logn)",
+          "O(1)"
+        ],
+        "page": 98
+      },
+      {
+        "position": 3,
+        "question": "In the sum function, under what condition is tree[a] added to the sum?",
+        "options": [
+          "when a is greater than b",
+          "when a is a multiple of three",
+          "when a is odd",
+          "when a is even"
+        ],
+        "page": 101
+      },
+      {
+        "position": 4,
+        "question": "According to the passage, how many elements of the difference array must be changed to increase a range of values in the original array?",
+        "options": [
+          "Three elements",
+          "One element",
+          "Four elements",
+          "Two elements"
+        ],
+        "page": 103
+      }
+    ]
+  },
+  "answerKey": [
+    1,
+    1,
+    2,
+    2,
+    3
+  ],
+  "chunkIds": [
+    205,
+    211,
+    218,
+    225,
+    230
+  ],
+  "explanations": [
+    "The passage states that for the range [3,6] in the example array, sum (3,6)=14, making 14 the correct answer.",
+    "The passage explicitly explains that the O(nlogn) bound comes from having O(logn) possible range lengths that are powers of two, leading to that many precalculated values per element.",
+    "The passage explicitly states that both functions run in O(logn) time because they access O(logn) values in the binary indexed tree, with each move taking O(1) time.",
+    "The code adds tree[a] to s only when the condition a%2 == 1 is true, which means a is odd.",
+    "The passage explains that to update a range in the original array, you only need to modify two positions in the difference array (increase at the start of the range and decrease just after the end)."
+  ]
+}

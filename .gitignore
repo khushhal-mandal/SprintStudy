@@ -13,3 +13,7 @@ book.pdf
 
 # local Postgres data
 .env
+
+# frontend build artefacts
+frontend/node_modules/
+frontend/dist/
