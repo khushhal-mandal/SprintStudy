@@ -71,6 +71,34 @@ Eulerian trail)…"*, and the item moves from a miss to rank 1.
 End to end, answering with HyDE gives 15/15 answerable questions answered and 5/5
 unanswerable refused.
 
+### Known limitation: the one remaining miss
+
+p01 asks, in a student's words, how to precompute something so that repeatedly summing
+the same stretch of an array becomes instant. The answer is the prefix sum array on
+page 94, in a section that opens by stipulating the array is static — *"the array values
+are never updated between the queries"*. HyDE instead returns page 96, where the binary
+indexed tree begins.
+
+This is not a labelling error. Both remaining questionable items were audited against
+the book and their expected pages left unchanged:
+
+- **p01** — page 94 holds the answer. The binary indexed tree on page 96 is the
+  *dynamic* variant, for when values change between queries, which p01 never asks
+  about. Page 103 is index compression, unrelated. Adjacent material, not the answer.
+- **p07** — page 87 defines amortized analysis directly and is cited correctly. Page 90
+  only demonstrates the idea through the nearest-smaller-elements example without
+  explaining the concept. The expected pages were right as written.
+
+The cause is inherent to the method rather than a bug. A hypothetical answer about
+precomputing range sums naturally describes both the static prefix-sum array and the
+dynamic structure that generalises it, so the generated passage carries binary indexed
+tree vocabulary into the search vector alongside the answer — and that material
+outranks it. HyDE's strength is that it writes the words the question omitted; the cost
+is that it also writes words the question did not want.
+
+**Final numbers stand at recall@5 0.933 and recall@1 0.867**, with p01 counted as a
+genuine miss rather than relabelled away.
+
 ### Recorded negative result: hybrid retrieval
 
 Dense and BM25 rankings fused with reciprocal rank fusion, `w` being keyword's share.
