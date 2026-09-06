@@ -14,3 +14,8 @@ CHUNK_OVERLAP = 150
 MIN_CHARS_PER_PAGE = 100
 
 DATA_DIR = Path(__file__).parent / "data"
+
+# Eval set. K is the retrieval depth every metric is measured at - changing it
+# changes what recall@K means, so past numbers stop being comparable.
+EVAL_PATH = Path(__file__).parent / "eval.json"
+EVAL_K = 5
