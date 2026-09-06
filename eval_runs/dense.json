@@ -1,5 +1,6 @@
 {
   "retriever": "dense",
+  "store": "numpy",
   "k": 5,
   "summary": {
     "overall": {

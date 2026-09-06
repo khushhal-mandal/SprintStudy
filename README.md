@@ -195,6 +195,35 @@ That is the gap HyDE closes and BM25 structurally cannot.
 BM25 is implemented in `bm25.py` rather than pulled in as a dependency. It has no
 stemmer, so "trees" does not match "tree".
 
+## What porting to a service surfaced
+
+Milestones 1-5 were scripts. Milestone 6 put the same logic behind FastAPI and Postgres
+with no changes to retrieval or grounding — and that move alone exposed three latent bugs.
+All three were state or error handling. None were in the core logic, which ported
+unchanged and reproduces its numbers exactly on either backend.
+
+- **`SystemExit` bypassing FastAPI's error handlers.** `llm.generate` and `db.pool()` exit
+  the process on failure, which is right for a CLI. `SystemExit` is a `BaseException`, so
+  it skipped FastAPI's handling entirely and an exhausted token quota reached the client as
+  a bare 500 with no body. Now translated to a 503 carrying the cause.
+
+- **A module-level store assigned per request.** `/ask` resolved the caller's document then
+  assigned it onto a global before answering. FastAPI runs sync handlers in a threadpool,
+  so two overlapping requests shared it: the second overwrote the global before the first
+  read it, and a question about one document was answered — and cited — from another. The
+  SQL had been filtered by `document_id` the whole time; the plumbing choosing *which*
+  document was not. Reproduced with two threads, fixed by passing the store as an argument,
+  and verified at zero leaks across four concurrent requests.
+
+- **A globally cached BM25 index.** Built once from whichever document was indexed first,
+  so with more than one document every keyword query would have scored against the wrong
+  vocabulary. Latent rather than live — `RETRIEVER` is HyDE, which never touches it — but
+  waiting for a config change to become real. Now keyed per store.
+
+The pattern is worth stating plainly: single-document, single-threaded, fail-by-exiting are
+assumptions a script can hold silently, and a service cannot. The retrieval maths needed
+nothing.
+
 ## Stack
 
 Python 3.11, pdfplumber, sentence-transformers (`bge-small-en-v1.5`), numpy.

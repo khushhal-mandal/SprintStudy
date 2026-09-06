@@ -123,7 +123,13 @@ HYBRID_WEIGHT = 0.5
 # HyDE: answer the question first, then search with the hypothetical answer.
 # Cached so the benchmark is reproducible - generation varies run to run even
 # at temperature 0. Delete the cache file to regenerate.
+# Two caches, deliberately. The benchmark cache is committed so eval runs are
+# reproducible; the runtime one is gitignored, because questions asked through
+# the API are the user's data and would otherwise accumulate in the artefact
+# that makes the benchmark deterministic. Reads check both, writes only ever
+# touch the runtime file.
 HYDE_CACHE_PATH = Path(__file__).parent / "hyde_cache.json"
+HYDE_RUNTIME_CACHE_PATH = Path(__file__).parent / "hyde_cache.local.json"
 HYDE_PROMPT = """Write a short passage that answers the question below, as it would appear
 in a technical reference. Two or three sentences. State it plainly as fact -
 do not hedge and do not say whether you are certain.

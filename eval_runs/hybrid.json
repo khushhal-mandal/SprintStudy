@@ -1,5 +1,6 @@
 {
   "retriever": "hybrid",
+  "store": "numpy",
   "k": 5,
   "summary": {
     "overall": {

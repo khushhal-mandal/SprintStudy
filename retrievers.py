@@ -19,12 +19,13 @@ from config import (
     HYBRID_WEIGHT,
     HYDE_CACHE_PATH,
     HYDE_PROMPT,
+    HYDE_RUNTIME_CACHE_PATH,
     RRF_K,
 )
 from embedder import embed_passage, embed_query
 
 _bm25: dict[str, bm25_module.BM25] = {}
-_cache: dict | None = None
+_caches: dict[str, dict] | None = None
 
 
 def dense(question: str, store, k: int):
@@ -77,35 +78,50 @@ def _get_bm25(store) -> bm25_module.BM25:
     return _bm25[store.key]
 
 
-def _load_cache() -> dict:
-    """Cached hypotheticals, invalidated when the model or prompt changes.
+def _load_caches() -> tuple[dict, dict]:
+    """(benchmark, runtime), each invalidated when the model or prompt changes.
 
-    Without this the benchmark is not reproducible: generation varies between
+    Without a cache the benchmark is not reproducible: generation varies between
     runs even at temperature 0, so the same retriever would score differently
-    each time and no comparison would mean anything.
+    each time. The split keeps that guarantee while stopping live questions from
+    accumulating in the committed file.
     """
-    global _cache
-    if _cache is not None:
-        return _cache
+    global _caches
+    if _caches is None:
+        _caches = {
+            "benchmark": _read(HYDE_CACHE_PATH),
+            "runtime": _read(HYDE_RUNTIME_CACHE_PATH),
+        }
+    return _caches["benchmark"], _caches["runtime"]
 
-    _cache = {"model": GROQ_MODEL, "prompt": HYDE_PROMPT, "passages": {}}
-    if HYDE_CACHE_PATH.exists():
-        saved = json.loads(HYDE_CACHE_PATH.read_text(encoding="utf-8"))
-        if saved.get("model") == GROQ_MODEL and saved.get("prompt") == HYDE_PROMPT:
-            _cache = saved
-        else:
-            print(f"{HYDE_CACHE_PATH.name}: model or prompt changed, regenerating")
-    return _cache
+
+def _read(path) -> dict:
+    empty = {"model": GROQ_MODEL, "prompt": HYDE_PROMPT, "passages": {}}
+    if not path.exists():
+        return empty
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    if saved.get("model") == GROQ_MODEL and saved.get("prompt") == HYDE_PROMPT:
+        return saved
+    print(f"{path.name}: model or prompt changed, regenerating")
+    return empty
 
 
 def hypothetical(question: str) -> str:
-    cache = _load_cache()
-    if question not in cache["passages"]:
-        cache["passages"][question] = llm.generate(HYDE_PROMPT.format(question=question))
-        HYDE_CACHE_PATH.write_text(
-            json.dumps(cache, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-        )
-    return cache["passages"][question]
+    benchmark, runtime = _load_caches()
+
+    # Benchmark first: an eval question must always resolve to the committed
+    # passage, whatever has since been asked through the API.
+    if question in benchmark["passages"]:
+        return benchmark["passages"][question]
+    if question in runtime["passages"]:
+        return runtime["passages"][question]
+
+    passage = llm.generate(HYDE_PROMPT.format(question=question))
+    runtime["passages"][question] = passage
+    HYDE_RUNTIME_CACHE_PATH.write_text(
+        json.dumps(runtime, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    return passage
 
 
 RETRIEVERS = {"dense": dense, "hybrid": hybrid, "hyde": hyde}
