@@ -249,10 +249,6 @@ CID_MAP = {
 # "x!==0", so the pair is replaced together. Getting this wrong inverts meaning.
 NEGATION_PAIR = ("(cid:54)=", "≠")
 
-# Front matter: title page, blank, contents, preface. Body text starts here.
-# Skipping keeps PDF page numbering intact for everything after it, so page
-# numbers already recorded in eval.json stay valid.
-FIRST_CONTENT_PAGE = 11
 
 # Structural pre-filter, in front of the model's NO_QUESTION sentinel rather
 # than instead of it: on the first run the sentinel let a contents-page question

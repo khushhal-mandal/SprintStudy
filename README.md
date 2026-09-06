@@ -20,9 +20,10 @@ Everything is developed and measured against:
 generated index in `data/`. Nothing here redistributes the book — supply your own copy
 to reproduce the numbers, or point the pipeline at any text-based PDF.
 
-Rough shape of the indexed corpus, for context on the eval numbers: front matter is
-skipped and 271 of the remaining 286 pages carry extractable text, producing 655 chunks
-averaging 684 characters (max 365 tokens against the embedding model's 512 limit).
+Rough shape of the indexed corpus, for context on the eval numbers: 277 of 296 pages carry
+extractable text, producing 673 chunks averaging 685 characters (max 407 tokens against the
+embedding model's 512 limit). Every page is indexed, front matter included — see the
+limitation below.
 
 The book is typeset with Fourier and AMS math fonts whose built-in Type 1 encodings
 pdfminer cannot resolve, so every square root, floor bracket and summation originally
@@ -155,6 +156,26 @@ is that it also writes words the question did not want.
 
 **Final numbers stand at recall@5 0.933 and recall@1 0.867**, with p01 counted as a
 genuine miss rather than relabelled away.
+
+### Known limitation: front matter is indexed, not detected
+
+Every page of a PDF goes into the index, including title pages, tables of contents and
+prefaces. Nothing tries to identify front matter and skip it.
+
+An earlier version did skip a fixed prefix of pages, with the count derived from this
+book's layout — title page, contents, preface. Applied to a second, unrelated upload it
+discarded the first 10 pages of a 16-page document whose page 1 was already body text.
+Roughly two thirds of that document was silently missing from the index.
+
+Detection was considered and rejected. A heuristic tuned on two documents and applied to
+everything a user uploads is exactly how that bug happened, one level up; reliable front
+matter detection across arbitrary PDF layouts is not something two test documents can
+validate.
+
+Indexed front matter is noise rather than corruption. It does not outscore real content —
+removing 18 front-matter chunks from a 673-chunk index moved no metric on any of the three
+retrievers, to three decimal places — and the dot-leader pre-filter already excludes
+contents pages from quiz generation, which is the one place they would do harm.
 
 ### Recorded negative result: hybrid retrieval
 

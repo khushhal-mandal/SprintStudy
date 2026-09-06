@@ -7,16 +7,15 @@ PDF numbers, so this resolves the offset and prints both.
 
 import json
 import re
-import sys
 from collections import Counter
 
-import pdfplumber
-
-import pdf_parser
 import store
-from config import FIRST_CONTENT_PAGE
 
-DEFAULT_PDF = "book.pdf"
+# Where this book keeps its table of contents. A local constant, not a shared
+# one: sections.py is a helper for building eval.json against a specific book,
+# so a layout assumption is fine here. The same assumption in the ingestion
+# path is what discarded ten pages of an unrelated upload.
+TOC_PAGES = range(1, 12)
 MAX_OFFSET = 30
 
 PART_RE = re.compile(r"^([IVX]+)\s+(.+?)\s+(\d+)$")
@@ -24,27 +23,12 @@ CHAPTER_RE = re.compile(r"^(\d+)\s+(.+?)\s+(\d+)$")
 SECTION_RE = re.compile(r"^(\d+\.\d+)\s+(.+?)\s*(?:\.\s*){3,}(\d+)$")
 
 
-def load_pages(pdf_path: str) -> dict[int, str]:
-    """Front matter from the PDF, body pages from the index.
-
-    The contents pages are no longer ingested - they are dot leaders rather
-    than content - so the table of contents has to be read from the PDF
-    directly. Body text still comes from chunks.json, because that is what the
-    index actually holds and what the page numbers must agree with.
-    """
-    pages: dict[int, str] = {}
-
-    with pdfplumber.open(pdf_path) as pdf:
-        for i, page in enumerate(pdf.pages[: FIRST_CONTENT_PAGE - 1], start=1):
-            pages[i] = pdf_parser._clean(page.extract_text() or "")
-
+def load_pages() -> dict[int, str]:
+    """Rebuild each page's text from its chunks, removing the overlap prefix."""
     by_page: dict[int, list[str]] = {}
     for c in json.loads(store.CHUNKS_PATH.read_text(encoding="utf-8")):
         by_page.setdefault(c["page"], []).append(c["text"])
-    for page_no, texts in by_page.items():
-        pages[page_no] = _merge(texts)
-
-    return pages
+    return {p: _merge(texts) for p, texts in by_page.items()}
 
 
 def _merge(texts: list[str]) -> str:
@@ -65,7 +49,7 @@ def parse_toc(pages: dict[int, str]) -> list[dict]:
     entries: list[dict] = []
     seen: set[tuple[str, str]] = set()
 
-    for p in range(1, FIRST_CONTENT_PAGE):
+    for p in TOC_PAGES:
         if p not in pages:
             continue
         for line in pages[p].splitlines():
@@ -112,8 +96,8 @@ def resolve_offset(entries: list[dict], pages: dict[int, str]) -> tuple[int, int
     return offset, matched, len(checkable)
 
 
-def main(pdf_path: str) -> None:
-    pages = load_pages(pdf_path)
+def main() -> None:
+    pages = load_pages()
     entries = parse_toc(pages)
     if not entries:
         raise SystemExit("No table of contents found in the front matter.")
@@ -154,4 +138,4 @@ def main(pdf_path: str) -> None:
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PDF)
+    main()

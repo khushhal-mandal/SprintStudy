@@ -2,12 +2,7 @@ import re
 
 import pdfplumber
 
-from config import (
-    CID_MAP,
-    FIRST_CONTENT_PAGE,
-    MIN_CHARS_PER_PAGE,
-    NEGATION_PAIR,
-)
+from config import CID_MAP, MIN_CHARS_PER_PAGE, NEGATION_PAIR
 
 CID_RE = re.compile(r"\(cid:(\d+)\)")
 
@@ -23,13 +18,14 @@ def extract_pages(pdf_path: str) -> list[tuple[int, str]]:
     unmapped: set[int] = set()
 
     with pdfplumber.open(pdf_path) as pdf:
+        total = len(pdf.pages)
         for i, page in enumerate(pdf.pages, start=1):
-            # Front matter carries no teachable content and the contents pages
-            # are mostly dot leaders. Page numbers are unchanged by skipping,
-            # because i counts PDF pages rather than kept ones.
-            if i < FIRST_CONTENT_PAGE:
-                continue
-            total += 1
+            # Every page is indexed. Front matter is noise, not corruption: it
+            # does not outscore real content, and the dot-leader pre-filter
+            # already keeps contents pages out of quiz generation, which is the
+            # one place they would do harm. Skipping a fixed prefix instead cost
+            # a 16-page upload its first 10 pages, because the page count was
+            # derived from one book's layout and applied to everything.
             text = _clean(page.extract_text() or "", unmapped)
             if len(text) >= MIN_CHARS_PER_PAGE:
                 pages.append((i, text))
