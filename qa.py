@@ -22,14 +22,19 @@ import store
 from config import (
     ANSWER_K,
     EVAL_PATH,
+    GROQ_MODEL,
     GROUNDING_PROMPT,
     MIN_CONTEXT_SCORE,
+    QA_RUN_PATH,
     REFUSAL_MESSAGE,
     REFUSAL_SENTINEL,
 )
 from embedder import embed_query
 
-CITATION_RE = re.compile(r"\[(\d+)\]")
+# The model intermittently emits full-width 【5】 instead of [5] - same
+# citation, different bracket - so both forms are accepted. A mixed pair
+# like [5】 is tolerated rather than treated as a separate case.
+CITATION_RE = re.compile(r"[\[【](\d+)[\]】]")
 
 _index = None
 
@@ -138,49 +143,93 @@ def print_result(result: dict) -> None:
 
 
 def run_all() -> None:
-    """Every eval question through the full pipeline. Milestone 3's acceptance test."""
+    """Every eval question through the full pipeline. Milestone 3's acceptance test.
+
+    Writes the run to QA_RUN_PATH so the numbers in the repo are a run that
+    happened, not a claim. Model output is non-deterministic even at
+    temperature 0, so this file is expected to change between runs.
+    """
     items = json.loads(EVAL_PATH.read_text(encoding="utf-8"))
+    chunks, _ = _load_index()
 
     print(f"\n{len(items)} questions through the full pipeline\n")
-    print(f"  {'id':<5} {'category':<12} {'top1':>6} {'outcome':<10} pages cited")
-    print(f"  {'-' * 62}")
+    print(f"  {'id':<5} {'category':<12} {'top1':>6} {'outcome':<10} {'cites':>5}  pages cited")
+    print(f"  {'-' * 68}")
 
-    results = []
+    records = []
     for item in items:
         r = answer(item["question"])
-        results.append((item, r))
+        leaked = bool(r["answered"] and re.search(r"\bpage\s+\d+", r["answer"], re.I))
+        pages = [c["page"] for c in r["citations"]]
+
+        records.append(
+            {
+                "id": item["id"],
+                "category": item["category"],
+                "answerable": item["answerable"],
+                "top1_score": round(r["top1_score"], 4),
+                "answered": r["answered"],
+                "refusal_reason": r["refusal_reason"],
+                "citation_count": len(r["citations"]),
+                "cited_pages": pages,
+                "dropped_citations": r["dropped_citations"],
+                "uncited": r["uncited"],
+                "wrote_page_number": leaked,
+                "answer": r["answer"],
+            }
+        )
 
         if r["answered"]:
-            outcome = "answered"
-            detail = ",".join(str(c["page"]) for c in r["citations"]) or "NONE CITED"
+            outcome, detail = "answered", ",".join(map(str, pages)) or "NONE CITED"
+            cites = str(len(r["citations"]))
         else:
-            outcome = "refused"
-            detail = f"({r['refusal_reason']})"
+            outcome, detail, cites = "refused", f"({r['refusal_reason']})", "-"
 
         print(
             f"  {item['id']:<5} {item['category']:<12} {r['top1_score']:>6.3f} "
-            f"{outcome:<10} {detail}"
+            f"{outcome:<10} {cites:>5}  {detail}"
         )
 
-    unanswerable = [(i, r) for i, r in results if not i["answerable"]]
-    answerable = [(i, r) for i, r in results if i["answerable"]]
-    refused_bad = sum(1 for _, r in unanswerable if not r["answered"])
-    answered_ok = sum(1 for _, r in answerable if r["answered"])
-    prefiltered = sum(1 for _, r in results if r["refusal_reason"] == "pre_filter")
-    uncited = sum(1 for _, r in results if r["uncited"])
+    answerable = [r for r in records if r["answerable"]]
+    unanswerable = [r for r in records if not r["answerable"]]
+    summary = {
+        "items": len(records),
+        "answerable": len(answerable),
+        "unanswerable": len(unanswerable),
+        "unanswerable_refused": sum(1 for r in unanswerable if not r["answered"]),
+        "answerable_answered": sum(1 for r in answerable if r["answered"]),
+        "pre_filter_fired": sum(1 for r in records if r["refusal_reason"] == "pre_filter"),
+        "citations_total": sum(r["citation_count"] for r in records),
+        "answered_without_citation": sum(1 for r in records if r["uncited"]),
+        "citations_dropped": sum(len(r["dropped_citations"]) for r in records),
+        "page_number_leaks": sum(1 for r in records if r["wrote_page_number"]),
+    }
 
-    print(f"\n  unanswerable refused   {refused_bad}/{len(unanswerable)}")
-    print(f"  answerable answered    {answered_ok}/{len(answerable)}")
-    print(f"  pre-filter fired       {prefiltered}  (expected 0)")
-    print(f"  answered without cite  {uncited}")
+    QA_RUN_PATH.write_text(
+        json.dumps(
+            {
+                "model": GROQ_MODEL,
+                "answer_k": ANSWER_K,
+                "min_context_score": MIN_CONTEXT_SCORE,
+                "chunks": len(chunks),
+                "summary": summary,
+                "results": records,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
-    leaked = [
-        i["id"]
-        for i, r in results
-        if r["answered"] and re.search(r"\bpage\s+\d+", r["answer"], re.I)
-    ]
-    print(f"  wrote a page number    {len(leaked)}  {leaked or ''}")
-    print()
+    print(f"\n  unanswerable refused      {summary['unanswerable_refused']}/{len(unanswerable)}")
+    print(f"  answerable answered       {summary['answerable_answered']}/{len(answerable)}")
+    print(f"  pre-filter fired          {summary['pre_filter_fired']}  (expected 0)")
+    print(f"  citations attached        {summary['citations_total']}")
+    print(f"  answered without cite     {summary['answered_without_citation']}")
+    print(f"  citations dropped         {summary['citations_dropped']}")
+    print(f"  wrote a page number       {summary['page_number_leaks']}")
+    print(f"\n  run written to {QA_RUN_PATH.name}\n")
 
 
 if __name__ == "__main__":

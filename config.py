@@ -20,6 +20,10 @@ DATA_DIR = Path(__file__).parent / "data"
 EVAL_PATH = Path(__file__).parent / "eval.json"
 EVAL_K = 5
 
+# Record of the last full qa.py --all run. Committed, so the numbers in the
+# repo are a run that actually happened rather than a claim in a README.
+QA_RUN_PATH = Path(__file__).parent / "qa_run.json"
+
 # --- answering ---
 
 # Separate from EVAL_K on purpose. They are both 5, but changing retrieval
