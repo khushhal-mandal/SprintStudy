@@ -19,7 +19,7 @@ from pathlib import Path
 import numpy as np
 
 import store
-from config import DEFAULT_RETRIEVER, EVAL_K, EVAL_PATH, EVAL_RUNS_DIR
+from config import EVAL_DEFAULT_RETRIEVER, EVAL_K, EVAL_PATH, EVAL_RUNS_DIR
 from embedder import embed_query
 from retrievers import RETRIEVERS
 
@@ -496,7 +496,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("eval_set", nargs="?", type=Path, default=EVAL_PATH)
     parser.add_argument(
-        "--retriever", choices=sorted(RETRIEVERS), default=DEFAULT_RETRIEVER
+        "--retriever", choices=sorted(RETRIEVERS), default=EVAL_DEFAULT_RETRIEVER
     )
     parser.add_argument(
         "--compare", action="store_true", help="show every saved run side by side"

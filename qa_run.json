@@ -1,5 +1,6 @@
 {
   "model": "openai/gpt-oss-120b",
+  "retriever": "hyde",
   "answer_k": 5,
   "min_context_score": 0.55,
   "chunks": 680,
@@ -8,10 +9,10 @@
     "answerable": 15,
     "unanswerable": 5,
     "unanswerable_refused": 5,
-    "answerable_answered": 14,
+    "answerable_answered": 15,
     "pre_filter_fired": 0,
-    "citations_total": 22,
-    "answered_without_citation": 0,
+    "citations_total": 26,
+    "answered_without_citation": 2,
     "citations_dropped": 0,
     "page_number_leaks": 0
   },
@@ -20,24 +21,26 @@
       "id": "v01",
       "category": "verbatim",
       "answerable": true,
-      "top1_score": 0.8677,
+      "top1_score": 0.8807,
+      "top1_dense": 0.8677,
       "answered": true,
       "refusal_reason": null,
       "citation_count": 2,
       "cited_pages": [
-        97,
-        98
+        98,
+        97
       ],
       "dropped_citations": [],
       "uncited": false,
       "wrote_page_number": false,
-      "answer": "A binary indexed tree stores at each index k the sum of the last p(k) elements of the original array, where p(k)=k & ‑k. To obtain the prefix sum sum(1,k) the algorithm repeatedly adds tree[k] to an accumulator and moves to the preceding index k ← k ‑ p(k) (i.e., k -= k&‑k) until k = 0, visiting only O(log n) nodes【3】. The corresponding code is:\n\n```c\nint sum(int k) {\n    int s = 0;\n    while (k >= 1) {\n        s += tree[k];\n        k -= k & -k;\n    }\n    return s;\n}\n```【5】"
+      "answer": "A binary indexed tree stores at each index k the sum of a range of length p(k)=k&‑k that ends at k, so a prefix sum (1,k) can be obtained by adding together the O(log n) stored ranges that partition [1,k]. The algorithm repeatedly adds tree[k] to an accumulator and moves to the next relevant index with k ← k − (k&‑k) until k = 0, yielding the prefix sum in O(log n) time【3】【4】."
     },
     {
       "id": "v02",
       "category": "verbatim",
       "answerable": true,
-      "top1_score": 0.8414,
+      "top1_score": 0.8982,
+      "top1_dense": 0.8044,
       "answered": true,
       "refusal_reason": null,
       "citation_count": 2,
@@ -48,30 +51,32 @@
       "dropped_citations": [],
       "uncited": false,
       "wrote_page_number": false,
-      "answer": "A segment tree has only O(log n) levels, and a range query visits at most a constant number of nodes per level, so the total number of visited nodes is O(log n). Thus the query climbs the tree level‑by‑level and finishes in O(log n) time【2】【5】."
+      "answer": "A segment tree has only O(log n) levels, so a range query climbs at most one level per step and visits only a logarithmic number of nodes. Consequently the total work is proportional to the height of the tree, giving O(log n) time for a query【4】【5】."
     },
     {
       "id": "v03",
       "category": "verbatim",
       "answerable": true,
-      "top1_score": 0.8656,
+      "top1_score": 0.8577,
+      "top1_dense": 0.8613,
       "answered": true,
       "refusal_reason": null,
       "citation_count": 2,
       "cited_pages": [
-        155,
-        156
+        156,
+        157
       ],
       "dropped_citations": [],
       "uncited": false,
       "wrote_page_number": false,
-      "answer": "The union‑find structure determines if two elements are in the same set by using the find operation to obtain each element’s representative and then comparing those representatives; if the representatives are equal, the elements belong to the same set【4】【5】."
+      "answer": "The union‑find structure determines that two elements are in the same set by finding each element’s representative and checking whether the representatives are identical (e.g., `same(a,b)` returns `find(a)==find(b)`)【4】【5】"
     },
     {
       "id": "v04",
       "category": "verbatim",
       "answerable": true,
-      "top1_score": 0.8447,
+      "top1_score": 0.8461,
+      "top1_dense": 0.7925,
       "answered": true,
       "refusal_reason": null,
       "citation_count": 2,
@@ -82,45 +87,47 @@
       "dropped_citations": [],
       "uncited": false,
       "wrote_page_number": false,
-      "answer": "The Z‑algorithm builds the Z‑array in a single left‑to‑right scan, keeping a window [x, y] that is the rightmost segment of the string that matches its prefix. For each position k it first looks at the previously computed value z[k‑x]; if k + z[k‑x] < y it can copy that value (z[k] = z[k‑x]), otherwise it must compare characters one by one starting at y‑k+1 and y+1 to extend the match and update the window [x, y] as needed [4][3]. This use of the stored Z‑values and the [x, y] range lets the whole array be constructed in O(n) time."
+      "answer": "The Z‑algorithm processes the string from left to right while maintaining the rightmost interval [x, y] such that s[x…y] is a prefix of s. For each position k it first checks the previously stored value z[k‑x]; if k + z[k‑x] < y the Z‑value can be copied (z[k] = z[k‑x]), otherwise the algorithm compares characters beyond y to extend the match and updates the interval [x, y] accordingly, guaranteeing O(n) time. [1][3]"
     },
     {
       "id": "v05",
       "category": "verbatim",
       "answerable": true,
-      "top1_score": 0.888,
+      "top1_score": 0.8686,
+      "top1_dense": 0.888,
       "answered": true,
       "refusal_reason": null,
-      "citation_count": 1,
+      "citation_count": 2,
       "cited_pages": [
+        159,
         159
       ],
       "dropped_citations": [],
       "uncited": false,
       "wrote_page_number": false,
-      "answer": "A topological sort yields a linear ordering of all the vertices of a directed acyclic graph such that whenever there is a path from node a to node b, node a appears earlier than node b in the order. [1]"
+      "answer": "Topological sorting yields an ordering of the graph’s nodes such that whenever there is a path from node a to node b, node a precedes node b in the list. Every directed acyclic graph (DAG) therefore has at least one such topological order. [1][2]"
     },
     {
       "id": "p01",
       "category": "paraphrase",
       "answerable": true,
-      "top1_score": 0.6866,
+      "top1_score": 0.7884,
+      "top1_dense": 0.6431,
       "answered": true,
       "refusal_reason": null,
-      "citation_count": 1,
-      "cited_pages": [
-        103
-      ],
+      "citation_count": 0,
+      "cited_pages": [],
       "dropped_citations": [],
-      "uncited": false,
+      "uncited": true,
       "wrote_page_number": false,
-      "answer": "Yes. By building a prefix‑sum (or difference) array in advance you can answer any interval‑sum query in O(1): the sum of a stretch [a,b] is just prefix[b] − prefix[a‑1] (or the corresponding difference‑array lookup). [5]"
+      "answer": ""
     },
     {
       "id": "p02",
       "category": "paraphrase",
       "answerable": true,
-      "top1_score": 0.7126,
+      "top1_score": 0.8138,
+      "top1_dense": 0.6621,
       "answered": true,
       "refusal_reason": null,
       "citation_count": 1,
@@ -130,92 +137,105 @@
       "dropped_citations": [],
       "uncited": false,
       "wrote_page_number": false,
-      "answer": "Jumping to the middle (binary search) repeatedly halves the portion of the list that still needs to be examined, so the region size shrinks exponentially and the search runs in O(log n) time. Walking through the list checks elements one by one, requiring up to n comparisons and thus O(n) time, which is slower for large n [4]."
+      "answer": "Jumping to the middle repeatedly halves the remaining region to search, so each step eliminates half of the possible positions and the algorithm finishes in O(log n) time. In contrast, walking through the list one element at a time examines each element sequentially, requiring O(n) steps in the worst case. [2]"
     },
     {
       "id": "p03",
       "category": "paraphrase",
       "answerable": true,
-      "top1_score": 0.6777,
+      "top1_score": 0.7743,
+      "top1_dense": 0.6169,
       "answered": true,
       "refusal_reason": null,
-      "citation_count": 1,
+      "citation_count": 3,
       "cited_pages": [
+        255,
+        256,
         256
       ],
       "dropped_citations": [],
       "uncited": false,
       "wrote_page_number": false,
-      "answer": "Compute a hash (fingerprint) for each piece of text and compare the hash values; if the hashes are equal the texts are considered identical, though a collision (different texts with the same hash) is possible if the hash constants are poorly chosen. [1]"
+      "answer": "You can compute a hash value for each piece of text (e.g., using polynomial hashing that combines character codes with chosen constants) and then compare the two hash values instead of the characters themselves【2】. After an O(n) preprocessing step you can obtain any substring’s hash in O(1) time, allowing fast equality checks, though a collision—different texts with the same hash—is possible but unlikely with carefully chosen parameters【1】【3】."
     },
     {
       "id": "p04",
       "category": "paraphrase",
       "answerable": true,
-      "top1_score": 0.6345,
-      "answered": false,
-      "refusal_reason": "model",
-      "citation_count": 0,
-      "cited_pages": [],
+      "top1_score": 0.835,
+      "top1_dense": 0.5765,
+      "answered": true,
+      "refusal_reason": null,
+      "citation_count": 2,
+      "cited_pages": [
+        183,
+        184
+      ],
       "dropped_citations": [],
       "uncited": false,
       "wrote_page_number": false,
-      "answer": null
+      "answer": "Yes. An Eulerian path is a walk that traverses each edge of a graph exactly once, and it exists when all edges lie in a single connected component and either every node has even degree or exactly two nodes have odd degree (the odd‑degree nodes become the start and end of the path)【1】【2】."
     },
     {
       "id": "p05",
       "category": "paraphrase",
       "answerable": true,
-      "top1_score": 0.7155,
+      "top1_score": 0.8441,
+      "top1_dense": 0.7011,
       "answered": true,
       "refusal_reason": null,
       "citation_count": 1,
       "cited_pages": [
-        147
+        146
       ],
       "dropped_citations": [],
       "uncited": false,
       "wrote_page_number": false,
-      "answer": "To obtain the two nodes that are farthest apart (the tree’s diameter), compute for each node the maximum length of a path that starts at that node; the largest of these lengths is the diameter, and its endpoints are the desired points. This can be done in linear time O(n) by a depth‑first or breadth‑first search that first finds a farthest node from an arbitrary start, then finds the farthest node from that one — the resulting pair are the endpoints of the longest path [4]."
+      "answer": "Pick any node a in the tree, run a depth‑first (or breadth‑first) search to find the node b that is farthest from a. Then start a second search from b and find the node c that is farthest from b; the pair (b, c) are the two points whose distance is the tree’s diameter, i.e., the farthest apart points in the branching structure【2】. This two‑search method works because the longest path in a tree always has its endpoints at the farthest nodes discovered in this way【2】."
     },
     {
       "id": "p06",
       "category": "paraphrase",
       "answerable": true,
-      "top1_score": 0.7324,
+      "top1_score": 0.8244,
+      "top1_dense": 0.6892,
       "answered": true,
       "refusal_reason": null,
-      "citation_count": 2,
+      "citation_count": 3,
       "cited_pages": [
+        91,
         91,
         91
       ],
       "dropped_citations": [],
       "uncited": false,
       "wrote_page_number": false,
-      "answer": "Keep a monotonic queue (deque) of candidates for the minimum. When the window moves, discard elements from the back that are larger than the new element, add the new element to the back, and remove the front element if it has slid out of the window; the element at the front is always the current minimum [1][5]."
+      "answer": "Keep a monotonic queue (deque) of the window’s elements. When the window moves, discard from the back any elements larger than the new entry, push the new entry onto the back, and pop the front if its element has slid out of the window; the element at the front is then the current minimum. This lets you update the minimum in O(1) per step, giving an overall O(n) algorithm [1][3][4]."
     },
     {
       "id": "p07",
       "category": "paraphrase",
       "answerable": true,
-      "top1_score": 0.6226,
+      "top1_score": 0.7014,
+      "top1_dense": 0.568,
       "answered": true,
       "refusal_reason": null,
-      "citation_count": 1,
+      "citation_count": 2,
       "cited_pages": [
-        90
+        87,
+        89
       ],
       "dropped_citations": [],
       "uncited": false,
       "wrote_page_number": false,
-      "answer": "Because the total work can be bounded by a constant amount per element: each element is added to the stack once and removed at most once, so even if a removal sometimes requires many steps, the overall number of stack operations is at most 2 per element, giving a total of O(n) work and an average (amortized) cost of O(1) per operation【4】."
+      "answer": "Amortized analysis looks at the total time spent by all operations in a sequence and spreads the cost of any occasional expensive operation over the many cheap ones, so the average (amortized) cost per operation remains low【1】【3】."
     },
     {
       "id": "m01",
       "category": "multi_page",
       "answerable": true,
-      "top1_score": 0.7506,
+      "top1_score": 0.873,
+      "top1_dense": 0.7506,
       "answered": true,
       "refusal_reason": null,
       "citation_count": 2,
@@ -226,13 +246,14 @@
       "dropped_citations": [],
       "uncited": false,
       "wrote_page_number": false,
-      "answer": "Picking the largest‑value coin first can be suboptimal for non‑canonical coin systems; for example, with coins {1, 3, 4} and target 6 the greedy method yields 4 + 1 + 1 while the optimal solution is 3 + 3【1】.  \nThe failure is avoided by solving the coin‑change problem with dynamic programming, which computes the minimum‑coin count for any set of denominations【5】."
+      "answer": "Picking the largest‑value coin first can be wrong for non‑canonical coin systems; for example, with coins {1, 3, 4} and target 6 the greedy choice gives 4 + 1 + 1, while the optimal solution is 3 + 3 [1].  The failure is avoided by solving the problem with dynamic programming, which computes the minimum‑coin solution for any coin set [2]."
     },
     {
       "id": "m02",
       "category": "multi_page",
       "answerable": true,
-      "top1_score": 0.8202,
+      "top1_score": 0.8428,
+      "top1_dense": 0.8027,
       "answered": true,
       "refusal_reason": null,
       "citation_count": 2,
@@ -243,30 +264,29 @@
       "dropped_citations": [],
       "uncited": false,
       "wrote_page_number": false,
-      "answer": "Beyond simple range‑sum queries, a segment tree can be built to answer many other range queries such as minimum and maximum queries, greatest‑common‑divisor queries, and bit‑wise operations like AND, OR and XOR【1】【3】."
+      "answer": "Beyond simple range‑sum queries, a segment tree can be constructed to answer many other operations, such as minimum and maximum queries, greatest‑common‑divisor queries, and bit‑wise operations (AND, OR, XOR) on a range【2】【1】."
     },
     {
       "id": "m03",
       "category": "multi_page",
       "answerable": true,
-      "top1_score": 0.8676,
+      "top1_score": 0.8817,
+      "top1_dense": 0.7951,
       "answered": true,
       "refusal_reason": null,
-      "citation_count": 2,
-      "cited_pages": [
-        96,
-        99
-      ],
+      "citation_count": 0,
+      "cited_pages": [],
       "dropped_citations": [],
-      "uncited": false,
+      "uncited": true,
       "wrote_page_number": false,
-      "answer": "Both data structures answer range queries in O(log n) time, but a binary indexed tree (BIT) is limited to sum queries while a segment tree can handle many other queries such as minimum, maximum, or frequency counts [5][1]. A BIT is simpler and uses less memory, whereas a segment tree requires more memory and is harder to implement but is far more general [1]. Choose a BIT when you only need fast range‑sum updates; pick a segment tree when you need other types of range queries or more flexibility."
+      "answer": "Both structures answer range‑query and point‑update operations in O(log n) time, but a binary indexed tree is limited to sum queries while a segment tree can handle many other associative queries (e.g., min, max) and even range updates via lazy propagation【1†L1-L4】【2†L1-L4】. Because a BIT is simpler to implement and uses less memory, it is preferred when only prefix‑sum or range‑sum queries are needed; a segment tree is chosen when the problem requires more general queries or range‑update capabilities despite its higher memory cost and implementation complexity【2†L4-L6】."
     },
     {
       "id": "u01",
       "category": "unanswerable",
       "answerable": false,
-      "top1_score": 0.7022,
+      "top1_score": 0.7438,
+      "top1_dense": 0.6742,
       "answered": false,
       "refusal_reason": "model",
       "citation_count": 0,
@@ -280,7 +300,8 @@
       "id": "u02",
       "category": "unanswerable",
       "answerable": false,
-      "top1_score": 0.6408,
+      "top1_score": 0.7345,
+      "top1_dense": 0.5985,
       "answered": false,
       "refusal_reason": "model",
       "citation_count": 0,
@@ -294,7 +315,8 @@
       "id": "u03",
       "category": "unanswerable",
       "answerable": false,
-      "top1_score": 0.7076,
+      "top1_score": 0.742,
+      "top1_dense": 0.6755,
       "answered": false,
       "refusal_reason": "model",
       "citation_count": 0,
@@ -308,7 +330,8 @@
       "id": "u04",
       "category": "unanswerable",
       "answerable": false,
-      "top1_score": 0.6259,
+      "top1_score": 0.7694,
+      "top1_dense": 0.5741,
       "answered": false,
       "refusal_reason": "model",
       "citation_count": 0,
@@ -322,7 +345,8 @@
       "id": "u05",
       "category": "unanswerable",
       "answerable": false,
-      "top1_score": 0.6437,
+      "top1_score": 0.7353,
+      "top1_dense": 0.6285,
       "answered": false,
       "refusal_reason": "model",
       "citation_count": 0,

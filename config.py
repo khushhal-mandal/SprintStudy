@@ -76,7 +76,13 @@ Answer:"""
 
 # --- retrieval variants ---
 
-DEFAULT_RETRIEVER = "dense"
+# What qa.py answers with. eval.py has its own default below; the two are
+# separate so benchmarking a variant never silently changes what users get.
+RETRIEVER = "hyde"
+
+# Default for eval.py's --retriever flag. Stays dense: it is the baseline
+# every other run is measured against.
+EVAL_DEFAULT_RETRIEVER = "dense"
 EVAL_RUNS_DIR = Path(__file__).parent / "eval_runs"
 
 # Okapi BM25. Standard values, not fitted to the eval set.

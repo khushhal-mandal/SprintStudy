@@ -26,10 +26,12 @@ from config import (
     GROUNDING_PROMPT,
     MIN_CONTEXT_SCORE,
     QA_RUN_PATH,
+    RETRIEVER,
     REFUSAL_MESSAGE,
     REFUSAL_SENTINEL,
 )
 from embedder import embed_query
+from retrievers import RETRIEVERS
 
 # The model intermittently emits full-width 【5】 instead of [5] - same
 # citation, different bracket - so both forms are accepted. A mixed pair
@@ -78,7 +80,14 @@ def parse_citations(answer: str, chunks: list[dict]) -> tuple[list[dict], list[i
 
 def answer(question: str, k: int = ANSWER_K) -> dict:
     chunks, vectors = _load_index()
-    hits = store.search(embed_query(question), chunks, vectors, k)
+    hits = RETRIEVERS[RETRIEVER](question, chunks, vectors, k)
+
+    # MIN_CONTEXT_SCORE is calibrated on question-vs-chunk cosine: the dense
+    # floor over the eval set is 0.623. HyDE ranks by the hypothetical instead,
+    # and those scores run higher (floor 0.701), so gating on the retriever's
+    # own score would quietly change what 0.55 means. Measure the guard on the
+    # quantity it was calibrated on, whichever retriever produced the hits.
+    top1_dense = float(vectors[hits[0][1]["id"]] @ embed_query(question))
 
     retrieved = [
         {"rank": i, "score": score, "page": c["page"], "chunk_id": c["id"]}
@@ -94,9 +103,10 @@ def answer(question: str, k: int = ANSWER_K) -> dict:
         "uncited": False,
         "retrieved": retrieved,
         "top1_score": hits[0][0],
+        "top1_dense": top1_dense,
     }
 
-    if hits[0][0] < MIN_CONTEXT_SCORE:
+    if top1_dense < MIN_CONTEXT_SCORE:
         result["refusal_reason"] = "pre_filter"
         return result
 
@@ -126,7 +136,7 @@ def print_result(result: dict) -> None:
             "model": "model found no answer in the passages",
         }[result["refusal_reason"]]
         print(f"\n{REFUSAL_MESSAGE}")
-        print(f"  (refused: {reason}; top-1 {result['top1_score']:.3f})")
+        print(f"  (refused: {reason}; top-1 dense {result['top1_dense']:.3f})")
         return
 
     print(f"\n{result['answer']}\n")
@@ -153,7 +163,7 @@ def run_all() -> None:
     chunks, _ = _load_index()
 
     print(f"\n{len(items)} questions through the full pipeline\n")
-    print(f"  {'id':<5} {'category':<12} {'top1':>6} {'outcome':<10} {'cites':>5}  pages cited")
+    print(f"  {'id':<5} {'category':<12} {'dense':>6} {'outcome':<10} {'cites':>5}  pages cited")
     print(f"  {'-' * 68}")
 
     records = []
@@ -168,6 +178,7 @@ def run_all() -> None:
                 "category": item["category"],
                 "answerable": item["answerable"],
                 "top1_score": round(r["top1_score"], 4),
+                "top1_dense": round(r["top1_dense"], 4),
                 "answered": r["answered"],
                 "refusal_reason": r["refusal_reason"],
                 "citation_count": len(r["citations"]),
@@ -186,7 +197,7 @@ def run_all() -> None:
             outcome, detail, cites = "refused", f"({r['refusal_reason']})", "-"
 
         print(
-            f"  {item['id']:<5} {item['category']:<12} {r['top1_score']:>6.3f} "
+            f"  {item['id']:<5} {item['category']:<12} {r['top1_dense']:>6.3f} "
             f"{outcome:<10} {cites:>5}  {detail}"
         )
 
@@ -209,6 +220,7 @@ def run_all() -> None:
         json.dumps(
             {
                 "model": GROQ_MODEL,
+                "retriever": RETRIEVER,
                 "answer_k": ANSWER_K,
                 "min_context_score": MIN_CONTEXT_SCORE,
                 "chunks": len(chunks),
