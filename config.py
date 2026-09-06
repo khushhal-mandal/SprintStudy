@@ -116,3 +116,50 @@ do not hedge and do not say whether you are certain.
 Question: {question}
 
 Passage:"""
+
+# --- quiz generation ---
+
+QUIZ_PATH = Path(__file__).parent / "quiz.json"
+QUIZ_DEFAULT_N = 5
+QUIZ_OPTIONS = 4
+
+# One regeneration attempt before a chunk is dropped and backfilled.
+QUIZ_MAX_RETRIES = 1
+
+# Returned bare when a chunk has no teachable content - the table-of-contents
+# pages are 57% dot leaders. Same sentinel pattern as REFUSAL_SENTINEL.
+QUIZ_DECLINE_SENTINEL = "NO_QUESTION"
+
+# The model never sees a chunk id: source_chunk_id is attached from metadata
+# afterwards, so a wrong one is unrepresentable. What it must supply is
+# `evidence`, a span copied out of the passage, which is checked against the
+# chunk. That is what makes a question's answer traceable to its source.
+QUIZ_PROMPT = """Write one multiple-choice question testing understanding of the passage below.
+
+Rules:
+1. The question must be answerable from the passage alone, and the correct
+   answer must be stated in it. Do not use outside knowledge.
+2. Give exactly 4 options. Exactly one is correct. The other three must be
+   plausible to someone who has not read the passage, not obviously absurd.
+3. Keep all four options about the same length. Do not make the correct one
+   longer or more detailed than the others.
+4. "evidence" must be copied word for word from the passage - the sentence or
+   clause that makes the correct answer correct. Do not paraphrase it.
+5. Never mention a page number, a section number, or the document.
+6. If the passage has no teachable content - a table of contents, an index, a
+   fragment, a bare list of numbers - reply with exactly {sentinel} and
+   nothing else. Do not invent a question from nothing.
+
+Reply with a single JSON object and no other text:
+
+{{
+  "question": "...",
+  "options": ["...", "...", "...", "..."],
+  "answer_index": 0,
+  "evidence": "...",
+  "explanation": "..."
+}}
+
+Passage:
+{passage}
+"""

@@ -1,0 +1,79 @@
+{
+  "pages": [
+    93,
+    103
+  ],
+  "requested": 5,
+  "questions": [
+    {
+      "question": "What is the sum of the elements in the range [3,6] as given in the passage?",
+      "options": [
+        "14",
+        "12",
+        "15",
+        "13"
+      ],
+      "answer_index": 0,
+      "evidence": "sum (3,6)=14",
+      "explanation": "The passage provides the example array and explicitly states that for the range [3,6], sum (3,6)=14, making 14 the correct answer.",
+      "source_chunk_id": 223,
+      "page": 93
+    },
+    {
+      "question": "Why does the passage state that the number of precalculated values is O(nlogn)?",
+      "options": [
+        "Because there are O(logn) range lengths that are powers of two.",
+        "Because each element must be compared with every other element.",
+        "Because the recursive formula requires O(logn) steps per element.",
+        "Because the array size n multiplied by the query count gives O(nlogn)."
+      ],
+      "answer_index": 0,
+      "evidence": "The number of precalculated values is O(nlogn), because there are O(logn) range lengths that are powers of two.",
+      "explanation": "The passage explicitly explains that the O(nlogn) bound comes from having O(logn) possible range lengths that are powers of two, leading to that many precalculated values per element.",
+      "source_chunk_id": 229,
+      "page": 95
+    },
+    {
+      "question": "According to the passage, what is the time complexity of both the sum and add functions?",
+      "options": [
+        "O(logn)",
+        "O(n)",
+        "O(1)",
+        "O(n log n)"
+      ],
+      "answer_index": 0,
+      "evidence": "The time complexity of both the functions is O(logn)",
+      "explanation": "The passage explicitly states that both functions run in O(logn) time because they access O(logn) values in the binary indexed tree, with each move taking O(1) time.",
+      "source_chunk_id": 236,
+      "page": 98
+    },
+    {
+      "question": "According to the passage, which node is the parent of tree[k]?",
+      "options": [
+        "tree[(cid:98)k/2(cid:99)]",
+        "tree[2k]",
+        "tree[2k+1]",
+        "tree[k/2]"
+      ],
+      "answer_index": 0,
+      "evidence": "the parent of tree[k] is tree[(cid:98)k/2(cid:99)]",
+      "explanation": "The passage explicitly states that the parent of tree[k] is tree[(cid:98)k/2(cid:99)], making this the correct answer.",
+      "source_chunk_id": 242,
+      "page": 101
+    },
+    {
+      "question": "According to the passage, how many elements of the difference array must be changed to increase a range of values in the original array?",
+      "options": [
+        "One element",
+        "Two elements",
+        "Three elements",
+        "Four elements"
+      ],
+      "answer_index": 1,
+      "evidence": "it suffices to increase the difference array value at position 1 by 5 and decrease the value at position 5 by 5.",
+      "explanation": "The passage explains that to update a range in the original array, you only need to modify two positions in the difference array (increase at the start of the range and decrease just after the end).",
+      "source_chunk_id": 248,
+      "page": 103
+    }
+  ]
+}

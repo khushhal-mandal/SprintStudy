@@ -7,7 +7,7 @@ The retrieval layer is written from scratch — no LangChain, no LlamaIndex, no 
 vector database. Chunking, embedding, storage and search are all in this repo.
 
 > **Status:** in progress. Milestones 1 (ingestion), 2 (eval harness), 3 (grounded Q&A)
-> and 4 (retrieval variants) are done. Quiz generation is next.
+> 4 (retrieval variants) and 5 (quiz generation) are done. FastAPI and Postgres next.
 
 ## Test document
 
@@ -42,6 +42,7 @@ python sections.py                 # section list with PDF page numbers
 python eval.py                     # score retrieval against eval.json
 python qa.py "your question"       # grounded answer with page citations
 python qa.py --all                 # every eval question through the pipeline
+python quiz.py 93 103 5            # 5 MCQs sampled across a page range
 ```
 
 `sections.py` is the reference for `expected_pages` in `eval.json`. The book's printed
