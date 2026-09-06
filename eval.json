@@ -1,0 +1,211 @@
+[
+  {
+    "id": "v01",
+    "category": "verbatim",
+    "answerable": true,
+    "expected_pages": [
+      96,
+      97,
+      98
+    ],
+    "question": "How does a binary indexed tree compute a prefix sum?"
+  },
+  {
+    "id": "v02",
+    "category": "verbatim",
+    "answerable": true,
+    "expected_pages": [
+      99,
+      100,
+      101,
+      102
+    ],
+    "question": "Why does a segment tree range query run in O(log n) time?"
+  },
+  {
+    "id": "v03",
+    "category": "verbatim",
+    "answerable": true,
+    "expected_pages": [
+      155,
+      156,
+      157
+    ],
+    "question": "How does the union-find structure check whether two elements belong to the same set?"
+  },
+  {
+    "id": "v04",
+    "category": "verbatim",
+    "answerable": true,
+    "expected_pages": [
+      257,
+      258,
+      259
+    ],
+    "question": "How is the Z-array constructed by the Z-algorithm?"
+  },
+  {
+    "id": "v05",
+    "category": "verbatim",
+    "answerable": true,
+    "expected_pages": [
+      159,
+      160,
+      161
+    ],
+    "question": "What does topological sorting produce for a directed acyclic graph?"
+  },
+  {
+    "id": "p01",
+    "category": "paraphrase",
+    "answerable": true,
+    "expected_pages": [
+      94,
+      95
+    ],
+    "question": "If I keep adding up the same stretch of numbers again and again, can I precompute something so each lookup is instant?"
+  },
+  {
+    "id": "p02",
+    "category": "paraphrase",
+    "answerable": true,
+    "expected_pages": [
+      41,
+      42,
+      43,
+      44
+    ],
+    "question": "Why is jumping to the middle of a sorted list faster than walking through it one by one?"
+  },
+  {
+    "id": "p03",
+    "category": "paraphrase",
+    "answerable": true,
+    "expected_pages": [
+      255,
+      256
+    ],
+    "question": "How can I tell whether two pieces of text are identical without comparing them letter by letter?"
+  },
+  {
+    "id": "p04",
+    "category": "paraphrase",
+    "answerable": true,
+    "expected_pages": [
+      183,
+      184,
+      185
+    ],
+    "question": "Is there a way to walk along every connection in a network exactly once and never repeat one?"
+  },
+  {
+    "id": "p05",
+    "category": "paraphrase",
+    "answerable": true,
+    "expected_pages": [
+      145,
+      146,
+      147
+    ],
+    "question": "How do I find the two points in a branching structure that are furthest apart from each other?"
+  },
+  {
+    "id": "p06",
+    "category": "paraphrase",
+    "answerable": true,
+    "expected_pages": [
+      91,
+      92
+    ],
+    "question": "When I slide a fixed-width view across a list of numbers, how do I avoid recomputing the smallest value from scratch every time?"
+  },
+  {
+    "id": "p07",
+    "category": "paraphrase",
+    "answerable": true,
+    "expected_pages": [
+      87,
+      88
+    ],
+    "question": "Why does an operation that occasionally does a lot of work still count as cheap when you average it out?"
+  },
+  {
+    "id": "m01",
+    "category": "multi_page",
+    "answerable": true,
+    "expected_pages": [
+      67,
+      68,
+      75,
+      76,
+      77
+    ],
+    "question": "When does picking the largest coin first fail to give the fewest coins, and what technique fixes it?"
+  },
+  {
+    "id": "m02",
+    "category": "multi_page",
+    "answerable": true,
+    "expected_pages": [
+      99,
+      100,
+      101,
+      102,
+      267,
+      268,
+      269,
+      270
+    ],
+    "question": "Beyond plain range sums, what other kinds of queries can a segment tree be made to answer?"
+  },
+  {
+    "id": "m03",
+    "category": "multi_page",
+    "answerable": true,
+    "expected_pages": [
+      96,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102
+    ],
+    "question": "How do binary indexed trees and segment trees compare for range queries, and when would you pick one over the other?"
+  },
+  {
+    "id": "u01",
+    "category": "unanswerable",
+    "answerable": false,
+    "expected_pages": [],
+    "question": "How does a Fibonacci heap achieve O(1) amortized decrease-key?"
+  },
+  {
+    "id": "u02",
+    "category": "unanswerable",
+    "answerable": false,
+    "expected_pages": [],
+    "question": "What rotations does a red-black tree perform to rebalance after an insertion?"
+  },
+  {
+    "id": "u03",
+    "category": "unanswerable",
+    "answerable": false,
+    "expected_pages": [],
+    "question": "How does the simplex method solve a linear program?"
+  },
+  {
+    "id": "u04",
+    "category": "unanswerable",
+    "answerable": false,
+    "expected_pages": [],
+    "question": "How does Karatsuba multiplication beat the schoolbook algorithm?"
+  },
+  {
+    "id": "u05",
+    "category": "unanswerable",
+    "answerable": false,
+    "expected_pages": [],
+    "question": "What makes the expected height of a treap logarithmic?"
+  }
+]
