@@ -16,7 +16,7 @@ export default function App() {
   return (
     <main>
       <header>
-        <h1>Smart Study Assistant</h1>
+        <h1>SprintStudy</h1>
         <p className="muted">
           Answers grounded in one document, with the page they came from.
         </p>

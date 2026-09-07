@@ -32,7 +32,7 @@ async def lifespan(_: FastAPI):
     db.close()
 
 
-app = FastAPI(title="Smart Study Assistant", lifespan=lifespan)
+app = FastAPI(title="SprintStudy", lifespan=lifespan)
 
 
 @contextmanager

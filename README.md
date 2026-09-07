@@ -1,4 +1,4 @@
-# Smart Study Assistant
+# SprintStudy
 
 Upload a PDF, ask questions about it, and get answers grounded **only** in that document
 with the page they came from. Generate a multiple-choice quiz from any page range, where
