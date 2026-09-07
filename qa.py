@@ -41,7 +41,17 @@ from stores import open_store
 # The model intermittently emits full-width 【5】 instead of [5] - same
 # citation, different bracket - so both forms are accepted. A mixed pair
 # like [5】 is tolerated rather than treated as a separate case.
-CITATION_RE = re.compile(r"[\[【](\d+)[\]】]")
+#
+# It also emits a dagger-suffixed form, 【2†L3-L5】, naming lines within the
+# passage. Requiring the bracket to close immediately after the digits dropped
+# both citations from an answer that was correctly grounded and had cited them,
+# leaving it recorded as uncited - the same silent-discard failure the
+# full-width brackets caused in milestone 5, in a new costume.
+#
+# The suffix must start with the dagger. A looser "anything up to the closing
+# bracket" would swallow ordinary prose like "[see 3]" and invent a citation
+# from it. New forms belong here as they are observed, not guessed at.
+CITATION_RE = re.compile(r"[\[【](\d+)(?:†[^\]】]*)?[\]】]")
 
 
 def build_prompt(question: str, chunks: list[dict]) -> str:

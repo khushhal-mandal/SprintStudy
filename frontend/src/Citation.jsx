@@ -8,7 +8,12 @@
 // 【5】 instead of [5] intermittently - in milestone 5 that silently discarded 8
 // of 14 citations until the backend regex was widened. Assuming ASCII here
 // would reintroduce exactly that bug one layer up.
-const MARKER = /[[【](\d+)[\]】]/g;
+//
+// The dagger form 【2†L3-L5】 is accepted for the same reason: it turned up in
+// production, and the backend now parses it, so this pattern has to match what
+// the backend resolved or the marker would render as raw text beside a
+// citation list that does contain it.
+const MARKER = /[[【](\d+)(?:†[^\]】]*)?[\]】]/g;
 
 export default function Answer({ text, citations }) {
   const byMarker = new Map(citations.map((c) => [c.marker, c]));
