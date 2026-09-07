@@ -50,7 +50,14 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 #   curl -s https://api.groq.com/openai/v1/models -H "Authorization: Bearer $GROQ_API_KEY"
 GROQ_MODEL = "openai/gpt-oss-120b"
 LLM_TEMPERATURE = 0.0
-LLM_MAX_TOKENS = 512
+# Raised from 512, which truncated. One answer in the previous qa.py --all run
+# stopped mid-sentence at the cap - p03 ended "...while different hash values
+# guarantee they differ", losing its closing clause. Every metric still passed
+# (p03 cites page 255 earlier in the answer, so uncited stayed False), which is
+# the point: truncation degraded the text without moving a single number, so
+# nothing in the harness would have caught it. A quiz question plus four options
+# and an explanation is the longer shape and has less headroom still.
+LLM_MAX_TOKENS = 1024
 
 # requests' timeout is per socket operation, not per call: a response that
 # stalls after its headers arrive, or trickles a byte before each deadline,
