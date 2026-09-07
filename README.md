@@ -19,6 +19,10 @@ API: [sprintstudy-api.onrender.com](https://sprintstudy-api.onrender.com/docs)
 > **Status:** milestones 1–8 complete. Known gaps are in [Limitations](#limitations), not
 > hidden.
 
+**[ARCHITECTURE.md](ARCHITECTURE.md)** is the long version of this file: every module walked
+through, every design decision with the alternative it was chosen over, and the six bugs that
+only appeared once the scripts were put behind a service.
+
 ## What it does
 
 - **Grounded answers.** Retrieval returns the top 5 chunks; the model answers from those
