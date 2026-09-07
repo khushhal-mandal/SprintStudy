@@ -25,7 +25,15 @@ export default function App() {
         if (!live) return;
         setIndexed(rows);
         if (rows.length > 0) {
-          setDoc(rows[0]);
+          // The largest document, not the newest. Newest-first is right for
+          // the list, but as a default it means whatever anyone uploaded last
+          // becomes the landing experience for the next visitor - a two-page
+          // PDF is a worse demonstration than the book, and on a public
+          // instance it is not necessarily something anyone meant to feature.
+          const best = rows.reduce((a, b) =>
+            (b.chunk_count ?? 0) > (a.chunk_count ?? 0) ? b : a
+          );
+          setDoc(best);
           setTab("ask");
         }
       })
