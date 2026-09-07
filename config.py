@@ -184,7 +184,10 @@ Rules:
    longer or more detailed than the others.
 7. "evidence" must be copied word for word from the passage - the sentence or
    clause that makes the correct answer correct. Do not paraphrase it.
-8. Never mention a page number, a section number, or the document.
+8. Never mention a page number, a section number, the document, or the passage
+   itself. The question and its options must stand alone: whoever answers them
+   sees only the question, so "According to the passage..." points at nothing
+   they can read. Write the substance in rather than referring to it.
 9. If the passage has no teachable content - a table of contents, an index, a
    fragment, a bare list of numbers - reply with exactly {sentinel} and
    nothing else. Do not invent a question from nothing.
