@@ -9,6 +9,32 @@
   --warn: #8a6a1f;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161513;
+    --fg: #eae7e1;
+    --muted: #9b948a;
+    --line: #322f2a;
+    --accent: #7fb8a5;
+    --bad: #e08a80;
+    --good: #8fc79a;
+    --warn: #d6b35f;
+    --surface: #1f1d1a;
+    --pill-bg: #23302b;
+    --pill-line: #33463f;
+    --ok-bg: #1e2c22;
+    --no-bg: #2e211f;
+  }
+}
+
+:root {
+  --surface: #fff;
+  --pill-bg: #eaf0ed;
+  --pill-line: #cfdcd6;
+  --ok-bg: #e8f2ea;
+  --no-bg: #f7e9e8;
+}
+
 * { box-sizing: border-box; }
 
 body {
@@ -34,16 +60,17 @@ nav { display: flex; gap: 0.5rem; border-bottom: 1px solid var(--line); margin-t
 .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .row input[type="text"], form.row input { flex: 1; }
 
-input, button {
+input, button, select {
   font: inherit; padding: 0.5rem 0.65rem;
-  border: 1px solid var(--line); border-radius: 6px; background: #fff; color: inherit;
+  border: 1px solid var(--line); border-radius: 6px;
+  background: var(--surface); color: inherit;
 }
 input[type="number"] { width: 5.5rem; }
 button { background: var(--accent); color: #fff; border-color: var(--accent); cursor: pointer; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .card {
-  border: 1px solid var(--line); border-radius: 8px; background: #fff;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
   padding: 0.9rem 1rem; margin: 0.85rem 0;
 }
 .card .row { justify-content: space-between; }
@@ -64,16 +91,57 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .pill {
   display: inline-block; font-size: 0.78rem; font-variant-numeric: tabular-nums;
   padding: 0.05rem 0.4rem; margin: 0 0.12rem; border-radius: 999px;
-  background: #eaf0ed; color: var(--accent); border: 1px solid #cfdcd6;
+  background: var(--pill-bg); color: var(--accent); border: 1px solid var(--pill-line);
   vertical-align: baseline; cursor: help;
 }
 
 .options { list-style: none; padding: 0; margin: 0; }
 .options li { margin: 0.3rem 0; }
 .options label { display: flex; gap: 0.5rem; align-items: baseline; padding: 0.25rem 0.4rem; border-radius: 5px; }
-.options label.correct { background: #e8f2ea; color: var(--good); }
-.options label.wrong { background: #f7e9e8; color: var(--bad); }
+.options label.correct { background: var(--ok-bg); color: var(--good); }
+.options label.wrong { background: var(--no-bg); color: var(--bad); }
 .feedback { font-size: 0.9rem; margin: 0.6rem 0 0; color: var(--muted); }
 .feedback .correct { color: var(--good); font-weight: 600; }
 .feedback .wrong { color: var(--bad); font-weight: 600; }
 .score { text-align: center; font-size: 1.4rem; }
+
+/* Keyboard focus. The sheet had none, so tabbing through the app was invisible
+   - the worst kind of accessibility bug, because it looks fine to a mouse. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Which document is being answered from. "Grounded in one document" means
+   nothing if the screen never says which one. */
+.docbar {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  margin-top: 0.9rem; font-size: 0.9rem;
+}
+.docbar select { padding: 0.3rem 0.45rem; max-width: 100%; }
+
+/* Progress that admits how long it has taken. See Pending.jsx. */
+.pending {
+  display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap;
+  color: var(--muted); font-size: 0.9rem; margin: 0.85rem 0;
+}
+.elapsed { font-variant-numeric: tabular-nums; }
+.spinner {
+  width: 0.7rem; height: 0.7rem; flex: none; align-self: center;
+  border: 2px solid var(--line); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Respect a user who has asked for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; border-top-color: var(--line); }
+}
+
+/* Small screens: the number inputs in the quiz row are the only thing that
+   does not already reflow. */
+@media (max-width: 480px) {
+  main { padding: 1.5rem 1rem 3rem; }
+  input[type="number"] { width: 4.5rem; }
+}

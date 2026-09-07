@@ -45,6 +45,10 @@ export function getDocument(id) {
   return request(`/documents/${id}`);
 }
 
+export function listDocuments() {
+  return request("/documents");
+}
+
 export function ask(question, documentId) {
   return request("/ask", {
     method: "POST",

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import Pending from "./Pending";
 import { getDocument, uploadPdf } from "./api";
 
 const SETTLED = ["ready", "failed"];
@@ -55,7 +56,7 @@ export default function Upload({ doc, onReady }) {
     <section>
       <h2>Upload a PDF</h2>
       <input type="file" accept="application/pdf" onChange={handle} disabled={busy} />
-      {busy && <p className="muted">uploading…</p>}
+      {busy && <Pending label="Uploading…" />}
 
       {status && (
         <div className="card">

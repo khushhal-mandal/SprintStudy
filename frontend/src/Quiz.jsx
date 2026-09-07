@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Pending from "./Pending";
 import { generateQuiz, submitQuiz } from "./api";
 
 export default function Quiz({ documentId }) {
@@ -77,6 +78,10 @@ export default function Quiz({ documentId }) {
           {busy ? "…" : "Generate"}
         </button>
       </div>
+
+      {busy && !result && (
+        <Pending label={quiz ? "Marking…" : "Writing questions from the document…"} />
+      )}
 
       {error && <p className="error">{error}</p>}
 

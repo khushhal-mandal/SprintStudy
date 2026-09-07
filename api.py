@@ -144,6 +144,23 @@ def _ingest(document_id: int, path: Path) -> None:
         path.unlink(missing_ok=True)
 
 
+@app.get("/documents")
+def documents() -> list[dict]:
+    """Every indexed document, newest first.
+
+    Exists so the frontend can offer what is already indexed instead of
+    demanding an upload before anything works. A deployed instance with a
+    document in it should be usable by someone who arrived with no PDF.
+    """
+    with upstream(), db.pool().connection() as conn:
+        rows = conn.execute(
+            "SELECT id, filename, status, pages, chunk_count, created_at"
+            "  FROM documents WHERE status = 'ready' ORDER BY id DESC"
+        ).fetchall()
+    keys = ("document_id", "filename", "status", "pages", "chunk_count", "created_at")
+    return [dict(zip(keys, row)) for row in rows]
+
+
 @app.get("/documents/{document_id}")
 def document(document_id: int) -> dict:
     """Ingestion progress. Without this, background work is unobservable."""

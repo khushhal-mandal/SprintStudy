@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Answer from "./Citation";
+import Pending from "./Pending";
 import { ask } from "./api";
 
 export default function Chat({ documentId }) {
@@ -39,7 +40,9 @@ export default function Chat({ documentId }) {
         <button disabled={busy || !question.trim()}>{busy ? "…" : "Ask"}</button>
       </form>
 
-      {turns.length === 0 && (
+      {busy && <Pending label="Retrieving and answering…" />}
+
+      {turns.length === 0 && !busy && (
         <p className="muted">
           Answers are grounded in the document only. Anything it does not cover is refused
           rather than guessed at.
