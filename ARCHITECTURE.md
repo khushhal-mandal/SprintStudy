@@ -590,31 +590,29 @@ volume-cached model on every cold start, and a demo that stalls 40s on first cli
 broken. `docker-compose.yml` passes `false`, because there a named volume persists and a
 smaller image is worth more.
 
-### Reading is open, writing is not
+### The instance is fully open, deliberately
 
-`/ask` and `/quiz` serve the seeded document to anyone — that is the point of a public demo.
-`/upload` requires `X-Upload-Token`, checked with `secrets.compare_digest` so the comparison
-leaks neither the token's length nor a matching prefix through timing.
+There is no authentication anywhere. `/ask` and `/quiz` serve the seeded document to
+anyone, and `/upload` accepts a PDF from anyone.
 
-The asymmetry is not arbitrary. **Anything uploaded to a public instance becomes readable by
-every other visitor**, through `/ask` with that `document_id`. Two personal résumés reached
-the deployed instance before the guard existed and were retrievable in full by anyone who
-tried `document_id: 2`.
+**The consequence is worth stating rather than discovering.** Anything uploaded becomes
+readable by every other visitor, through `/ask` with that `document_id` — the API will
+summarise it on request. Two personal résumés reached the deployed instance this way and
+were retrievable in full by anyone who tried `document_id: 2`; they were deleted, along with
+the eight quiz questions generated from them.
 
-**Unset `UPLOAD_TOKEN` refuses uploads rather than allowing them.** An instance nobody
-configured is exactly the instance that should not be accepting documents, and fail-open is
-how the résumés got there. `docker-compose.yml` supplies a development value so a fresh
-clone still works locally, where the exposure does not exist.
+A shared-secret guard on `/upload` was built and then removed: it made the demo's own upload
+flow unusable to the people the demo is for. That is a real trade and it was made
+knowingly — the instance is a portfolio demo, not a service holding anyone's data, and the
+operating rule is simply **do not upload anything you would not publish.** Real documents
+belong on the local stack, which points at local Postgres and is reachable by nobody.
 
-The frontend takes the token as a password field and holds it in component state. **It is
-never bundled** — a secret in a client bundle is not a secret — so the operator supplies it
-at upload time and readers never need one.
-
-**`DEMO_DOCUMENT_ID`** pins what a visitor lands on. Both obvious derivations are wrong on a
-public instance: *newest* makes whatever a stranger uploaded last into the landing
-experience, and *largest* is only a better guess at the same question. Neither is a decision
-anyone actually made, which is the problem. The API flags the configured document in
-`GET /documents` and the client honours the flag rather than re-deriving it.
+**`DEMO_DOCUMENT_ID`** limits the blast radius of the open upload. It pins what a visitor
+lands on, so a stranger's upload cannot become the landing experience. Both obvious
+derivations are worse: *newest* hands the front page to whoever uploaded last, and *largest*
+is only a better guess at the same question. Neither is a decision anyone actually made. The
+API flags the configured document in `GET /documents` and the client honours the flag rather
+than re-deriving it.
 
 ---
 

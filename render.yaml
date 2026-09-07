@@ -37,12 +37,6 @@ services:
       - key: GROQ_API_KEY
         sync: false
 
-      # Shared secret for POST /upload. Reading stays open; writing does not,
-      # because anything uploaded to a public instance is readable by everyone
-      # who visits it. Unset refuses uploads rather than allowing them.
-      - key: UPLOAD_TOKEN
-        sync: false
-
       # What a visitor lands on, pinned rather than inferred from whatever
       # happens to be newest or largest.
       - key: DEMO_DOCUMENT_ID

@@ -330,14 +330,3 @@ STORE = os.environ.get("STORE", "numpy")
 # guess at the same question. Neither is a decision anyone made.
 DEMO_DOCUMENT_ID = int(os.environ.get("DEMO_DOCUMENT_ID", "1"))
 
-# Shared secret for POST /upload. Reading is open - /ask and /quiz serve the
-# seeded document to anyone - but writing is not, because an open upload on a
-# public URL means everyone can read everything anyone uploads. Two personal
-# resumes reached the deployed instance that way.
-#
-# Unset means uploads are refused, not open. Fail-closed is the whole point: an
-# instance where someone forgot to configure this is exactly the instance that
-# should not accept documents. docker-compose.yml supplies a development value
-# so a local clone still works out of the box.
-UPLOAD_TOKEN = os.environ.get("UPLOAD_TOKEN", "")
-UPLOAD_TOKEN_HEADER = "X-Upload-Token"

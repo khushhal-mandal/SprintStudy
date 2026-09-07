@@ -35,17 +35,10 @@ async function request(path, options = {}) {
   return parsed;
 }
 
-// The token is passed in per call rather than held here. A secret in a client
-// bundle is not a secret - anyone can read it - so the operator supplies it at
-// upload time and it never leaves memory. Reading needs no token at all.
-export function uploadPdf(file, token) {
+export function uploadPdf(file) {
   const form = new FormData();
   form.append("file", file);
-  return request("/upload", {
-    method: "POST",
-    body: form,
-    headers: token ? { "X-Upload-Token": token } : undefined,
-  });
+  return request("/upload", { method: "POST", body: form });
 }
 
 export function getDocument(id) {
