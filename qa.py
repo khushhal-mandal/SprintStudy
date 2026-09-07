@@ -10,12 +10,17 @@ up against chunk metadata on the way out, so a fabricated page is not merely
 unlikely but unrepresentable.
 
 usage: python qa.py "your question"
-       python qa.py --all          score every question in eval.json
+       python qa.py --all                        score every question in eval.json
+       python qa.py --all --store postgres --document-id 3
+
+Which document is answered from is never implicit. --store and --document-id
+are passed to open_store and the resulting store is threaded down to every
+answer() call, so nothing here resolves a default halfway through a run.
 """
 
+import argparse
 import json
 import re
-import sys
 
 import llm
 from config import (
@@ -37,21 +42,6 @@ from stores import open_store
 # citation, different bracket - so both forms are accepted. A mixed pair
 # like [5】 is tolerated rather than treated as a separate case.
 CITATION_RE = re.compile(r"[\[【](\d+)[\]】]")
-
-_store = None
-
-
-def _load_index():
-    """The configured store, opened once and reused across questions.
-
-    Only for the CLI, which is single-threaded and serves one document. Callers
-    that already know their store pass it to answer() instead - see the note
-    there.
-    """
-    global _store
-    if _store is None:
-        _store = open_store()
-    return _store
 
 
 def build_prompt(question: str, chunks: list[dict]) -> str:
@@ -83,16 +73,17 @@ def parse_citations(answer: str, chunks: list[dict]) -> tuple[list[dict], list[i
     return citations, dropped
 
 
-def answer(question: str, k: int = ANSWER_K, store=None) -> dict:
+def answer(question: str, k: int = ANSWER_K, *, store) -> dict:
     """Answer from one document's chunks.
 
-    `store` is an argument rather than module state because the API serves
-    requests concurrently. Assigning a module-level store per request let two
-    overlapping requests interleave: the second overwrote the global before the
-    first read it, so a question about one document was answered - and cited -
-    from another. Passing it down keeps each request on its own document.
+    `store` is a required argument rather than module state, for two reasons
+    that bit separately. The API serves requests concurrently: assigning a
+    module-level store per request let two overlapping requests interleave, so
+    a question about one document was answered - and cited - from another. And
+    a lazy default resolved config.STORE at first use, which with
+    STORE=postgres meant the most recently uploaded document rather than the
+    one being measured. Neither is possible if the caller must say which store.
     """
-    store = store if store is not None else _load_index()
     hits = RETRIEVERS[RETRIEVER](question, store, k)
 
     # MIN_CONTEXT_SCORE is calibrated on question-vs-chunk cosine: the dense
@@ -165,15 +156,19 @@ def print_result(result: dict) -> None:
         print(f"  warning: dropped out-of-range markers {result['dropped_citations']}")
 
 
-def run_all() -> None:
+def run_all(store) -> None:
     """Every eval question through the full pipeline. Milestone 3's acceptance test.
 
     Writes the run to QA_RUN_PATH so the numbers in the repo are a run that
     happened, not a claim. Model output is non-deterministic even at
     temperature 0, so this file is expected to change between runs.
+
+    The store is passed in, not resolved here: a run that silently measured a
+    different document than the caller intended would still write a file that
+    looks exactly like a valid result.
     """
     items = json.loads(EVAL_PATH.read_text(encoding="utf-8"))
-    chunks = _load_index().chunks
+    chunks = store.chunks
 
     print(f"\n{len(items)} questions through the full pipeline\n")
     print(f"  {'id':<5} {'category':<12} {'dense':>6} {'outcome':<10} {'cites':>5}  pages cited")
@@ -181,7 +176,7 @@ def run_all() -> None:
 
     records = []
     for item in items:
-        r = answer(item["question"])
+        r = answer(item["question"], store=store)
         leaked = bool(r["answered"] and re.search(r"\bpage\s+\d+", r["answer"], re.I))
         pages = [c["page"] for c in r["citations"]]
 
@@ -258,10 +253,35 @@ def run_all() -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2 and sys.argv[1] == "--all":
-        run_all()
-    elif len(sys.argv) == 2:
-        print_result(answer(sys.argv[1]))
-        print()
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("question", nargs="?", help="a question to answer")
+    parser.add_argument(
+        "--all", action="store_true", help="score every question in eval.json"
+    )
+    parser.add_argument(
+        "--store", choices=("numpy", "postgres"), default=None,
+        help="which backend serves vector search (default: config.STORE)",
+    )
+    parser.add_argument(
+        "--document-id", type=int, default=None,
+        help="which document the postgres store reads (default: most recent)",
+    )
+    args = parser.parse_args()
+
+    if args.all and args.question:
+        parser.error("give a question or --all, not both")
+    if not args.all and not args.question:
+        parser.error("give a question, or --all to score every question in eval.json")
+
+    # Resolved once, here, and passed down. The alternative - letting each call
+    # fall back to config.STORE - is what put a 20-question run against the
+    # wrong document within one flag of happening.
+    index = open_store(args.store, args.document_id)
+
+    if args.all:
+        run_all(index)
     else:
-        sys.exit('usage: python qa.py "your question"  |  python qa.py --all')
+        print_result(answer(args.question, store=index))
+        print()
