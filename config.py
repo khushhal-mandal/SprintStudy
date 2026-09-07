@@ -4,6 +4,14 @@ from pathlib import Path
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
 EMBED_DIM = 384
 
+# fastembed streams in batches; 32 was sentence-transformers' setting and is
+# kept so ingestion memory stays flat on a small instance.
+EMBED_BATCH = 32
+
+# Where the ONNX weights live. Overridden in the container to a mounted volume
+# so the model is fetched once rather than baked into the image.
+EMBED_CACHE_DIR = os.environ.get("EMBED_CACHE_DIR", str(Path(__file__).parent / ".models"))
+
 # bge-v1.5 models are trained with this instruction on the QUERY side only.
 # Chunks are embedded as-is. Never add it to chunks.
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "

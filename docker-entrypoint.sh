@@ -2,8 +2,8 @@
 # Fetch the embedding model into the mounted cache, then hand off to CMD.
 #
 # The model is not baked into the image. It lives in the study-models volume
-# mounted at $HF_HOME, so the first `docker compose up` downloads it (128MB of
-# weights) and every start after that is a cache hit costing a few seconds.
+# mounted at $EMBED_CACHE_DIR, so the first `docker compose up` downloads it
+# and every start after that is a cache hit costing a few seconds.
 #
 # Why here and not lazily on first use: embedder loads the model on the first
 # call to embed_chunks, which happens inside /upload's background task. A
@@ -15,13 +15,15 @@ set -e
 
 python - <<'PY'
 from config import EMBED_MODEL
-from sentence_transformers import SentenceTransformer
+from embedder import embed_passage
 
-# The model id comes from config.py, not a second copy of the string here:
-# changing it in one place must change what the container fetches.
+# Goes through embedder rather than constructing TextEmbedding directly, so the
+# warm-up exercises exactly the path that serves requests - same model id, same
+# cache dir, same normalisation. A warm-up that used its own settings could
+# succeed while the real path still had to download.
 print(f"entrypoint: loading {EMBED_MODEL} (downloads on a cold cache) ...", flush=True)
-SentenceTransformer(EMBED_MODEL)
-print("entrypoint: model ready", flush=True)
+vector = embed_passage("warm up")
+print(f"entrypoint: model ready, {vector.shape[0]} dims", flush=True)
 PY
 
 exec "$@"

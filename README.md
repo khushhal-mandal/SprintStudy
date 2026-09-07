@@ -79,13 +79,13 @@ is still initialising. `GROQ_API_KEY` is only needed for answering and quiz gene
 ingestion and retrieval are entirely offline, and a missing key surfaces as a 503 naming
 the cause.
 
-**The embedding model is not baked into the image.** It is fetched on first container start
-into the `study-models` volume, so the first `docker compose up` takes about a minute longer
-while 128MB of weights download — `docker compose logs -f api` shows it — and every start
-after that is a cache hit. Baking it cost a 136MB layer (80MB compressed) holding a copy of
-a third-party artefact versioned independently of this repo; without it the image is 1.58GB
-rather than 1.72GB. The trade is deliberate: the image no longer works on a machine with no
-network and a cold volume.
+**The embedding model is not baked into the image locally.** `docker-compose.yml` builds with
+`BAKE_MODEL=false`, so the weights are fetched on first container start into the
+`study-models` volume and every start after that is a cache hit. Deployed builds use the
+Dockerfile default of `true` and ship the model inside the image, because a host with an
+ephemeral filesystem re-downloads a volume-cached model on every cold start and a demo that
+stalls on first click reads as broken. One Dockerfile, one build arg, and each environment
+gets the behaviour that suits it.
 
 Frontend (React, Vite, plain `fetch`, no state library):
 
@@ -105,6 +105,26 @@ python sweep.py                               # hybrid blend weight curve
 python qa.py --all                            # every eval question through the pipeline
 python quiz.py 93 103 5                       # 5 MCQs sampled across a page range
 ```
+
+Note `qa.py` and `eval.py` both require `--document-id` to be explicit once more than one
+document is indexed. Neither falls back to "whichever upload was most recent" — that default
+came within one environment variable of scoring 20 questions against the wrong document.
+
+## Deployment
+
+Three services, each chosen for a reason the free tier forces:
+
+| | | why |
+|---|---|---|
+| API | Render, Docker | `render.yaml` blueprint; builds with `BAKE_MODEL=true` so cold starts don't refetch the model |
+| Frontend | Vercel | `frontend/vercel.json` rewrites `/api/*` to the Render origin, mirroring the Vite dev proxy |
+| Postgres | Neon | Render's free Postgres has no `pgvector`, and `schema.sql` opens with `CREATE EXTENSION vector` |
+
+The Vercel rewrite is what keeps `api.py` free of CORS middleware: the browser only ever
+sees a same-origin `/api` path in production, exactly as it does in development.
+
+`DATABASE_URL` and `GROQ_API_KEY` are set in the Render dashboard and marked `sync: false`
+in the blueprint, so no value for either is ever committed.
 
 ---
 
@@ -220,6 +240,47 @@ silently: no ANN index; `<#>` (negative inner product) rather than `<=>`, since 
 are already L2-normalised and `<=>` would recompute norms; and `vector` being float4, which
 matches the float32 the embedder emits.
 
+### The fastembed swap is *not* exact, and that is the point
+
+Embedding moved from sentence-transformers to fastembed so the API image would fit a free
+instance: sentence-transformers pulls torch, and torch is most of a gigabyte that never runs
+a single CUDA kernel here.
+
+| | before | after |
+|---|---|---|
+| image, sum of layers | 1.58 GB | **0.48 GB** |
+| torch in the image | yes | **no** |
+
+Unlike the pgvector port, the two embedders do **not** agree bit for bit. ONNX and PyTorch
+evaluate the same weights differently:
+
+| | passages (n=200) | queries (n=20) |
+|---|---|---|
+| max abs difference, any dimension | **8.837e-04** | 4.561e-04 |
+| cosine(sentence-transformers, fastembed) | 0.99999815 | 0.99999869 |
+
+That is roughly **7,400× float32 eps** — small, but far too large to wave through as
+rounding, and on a 200-chunk sample it already reordered the top 5 for 3 of 20 questions.
+So the index was re-embedded and the whole eval re-run rather than assumed to carry over:
+
+| | dense | hybrid | HyDE |
+|---|---|---|---|
+| recall@5 | 0.800 → 0.800 | 0.800 → 0.800 | 0.933 → 0.933 |
+| recall@1 | 0.600 → 0.600 | 0.467 → 0.467 | 0.867 → 0.867 |
+| MRR | 0.667 → 0.667 | 0.611 → 0.611 | 0.900 → 0.900 |
+
+**Every headline metric and every per-item rank is unchanged.** Exactly one thing moved
+anywhere in the three runs: p01's top-5 under HyDE swapped positions 3 and 4 (`[96, 96, 31,
+268, 271]` → `[96, 96, 268, 31, 271]`). Neither is an expected page — p01 is the documented
+miss — so it reordered two wrong answers.
+
+Two traps were avoided by measuring rather than assuming. **fastembed exposes
+`query_embed()`, and for this model it does not apply the bge query instruction** — it is
+byte-identical to `embed()`. Trusting the name would have silently dropped `QUERY_PREFIX`
+from every query. And **the index must be embedded by whichever library serves queries**;
+a mix is not catastrophic here precisely because the two agree to six decimal places, but
+it is the kind of inconsistency that is invisible until it is expensive.
+
 ---
 
 ## What building this actually surfaced
@@ -323,9 +384,9 @@ metrics.
 
 ## Stack
 
-Python 3.11, pdfplumber, sentence-transformers (`bge-small-en-v1.5`), numpy, FastAPI,
+Python 3.11, pdfplumber, fastembed + onnxruntime (`bge-small-en-v1.5`), numpy, FastAPI,
 PostgreSQL 17 + pgvector 0.8.6, psycopg 3, React 19 + Vite. Groq (`openai/gpt-oss-120b`)
-for generation.
+for generation. Deployed on Render (API), Vercel (frontend) and Neon (Postgres).
 
 Deliberately excluded: Kubernetes, Kafka, Redis, a separate vector database, an ORM, and a
 frontend state library. This project's scale does not justify them, and claiming otherwise

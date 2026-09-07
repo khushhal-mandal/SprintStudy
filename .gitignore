@@ -20,3 +20,4 @@ frontend/dist/
 
 # runtime HyDE cache - benchmark cache is committed, this is not
 hyde_cache.local.json
+.models/

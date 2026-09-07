@@ -30,8 +30,8 @@
       }
     },
     "multi_page_strict": 1.0,
-    "answerable_top1_dense_mean": 0.7346225341161092,
-    "unanswerable_top1_dense_mean": 0.6301607608795166
+    "answerable_top1_dense_mean": 0.7343470493952433,
+    "unanswerable_top1_dense_mean": 0.6297567367553711
   },
   "results": [
     {
@@ -52,8 +52,8 @@
       ],
       "rank": 1,
       "rr": 1.0,
-      "top1_score": 0.880742,
-      "top1_dense": 0.8677
+      "top1_score": 0.880687,
+      "top1_dense": 0.8675
     },
     {
       "id": "v02",
@@ -74,8 +74,8 @@
       ],
       "rank": 1,
       "rr": 1.0,
-      "top1_score": 0.898247,
-      "top1_dense": 0.8044
+      "top1_score": 0.898262,
+      "top1_dense": 0.8043
     },
     {
       "id": "v03",
@@ -95,8 +95,8 @@
       ],
       "rank": 1,
       "rr": 1.0,
-      "top1_score": 0.857737,
-      "top1_dense": 0.8613
+      "top1_score": 0.857628,
+      "top1_dense": 0.8611
     },
     {
       "id": "v04",
@@ -116,8 +116,8 @@
       ],
       "rank": 1,
       "rr": 1.0,
-      "top1_score": 0.846102,
-      "top1_dense": 0.7925
+      "top1_score": 0.84595,
+      "top1_dense": 0.7921
     },
     {
       "id": "v05",
@@ -137,8 +137,8 @@
       ],
       "rank": 1,
       "rr": 1.0,
-      "top1_score": 0.868603,
-      "top1_dense": 0.888
+      "top1_score": 0.86857,
+      "top1_dense": 0.8879
     },
     {
       "id": "p01",
@@ -151,14 +151,14 @@
       "top_pages": [
         96,
         96,
-        31,
         268,
+        31,
         271
       ],
       "rank": null,
       "rr": 0.0,
-      "top1_score": 0.788446,
-      "top1_dense": 0.6431
+      "top1_score": 0.788281,
+      "top1_dense": 0.6427
     },
     {
       "id": "p02",
@@ -179,8 +179,8 @@
       ],
       "rank": 2,
       "rr": 0.5,
-      "top1_score": 0.81379,
-      "top1_dense": 0.6621
+      "top1_score": 0.813569,
+      "top1_dense": 0.6617
     },
     {
       "id": "p03",
@@ -199,8 +199,8 @@
       ],
       "rank": 1,
       "rr": 1.0,
-      "top1_score": 0.774259,
-      "top1_dense": 0.6169
+      "top1_score": 0.773939,
+      "top1_dense": 0.6165
     },
     {
       "id": "p04",
@@ -220,8 +220,8 @@
       ],
       "rank": 1,
       "rr": 1.0,
-      "top1_score": 0.835014,
-      "top1_dense": 0.5765
+      "top1_score": 0.834869,
+      "top1_dense": 0.5761
     },
     {
       "id": "p05",
@@ -241,8 +241,8 @@
       ],
       "rank": 1,
       "rr": 1.0,
-      "top1_score": 0.844114,
-      "top1_dense": 0.7011
+      "top1_score": 0.843984,
+      "top1_dense": 0.7009
     },
     {
       "id": "p06",
@@ -261,8 +261,8 @@
       ],
       "rank": 1,
       "rr": 1.0,
-      "top1_score": 0.824355,
-      "top1_dense": 0.6892
+      "top1_score": 0.824237,
+      "top1_dense": 0.6889
     },
     {
       "id": "p07",
@@ -281,8 +281,8 @@
       ],
       "rank": 1,
       "rr": 1.0,
-      "top1_score": 0.70141,
-      "top1_dense": 0.568
+      "top1_score": 0.701171,
+      "top1_dense": 0.5678
     },
     {
       "id": "m01",
@@ -304,8 +304,8 @@
       ],
       "rank": 1,
       "rr": 1.0,
-      "top1_score": 0.872966,
-      "top1_dense": 0.7506
+      "top1_score": 0.872791,
+      "top1_dense": 0.7504
     },
     {
       "id": "m02",
@@ -330,8 +330,8 @@
       ],
       "rank": 1,
       "rr": 1.0,
-      "top1_score": 0.842824,
-      "top1_dense": 0.8027
+      "top1_score": 0.842608,
+      "top1_dense": 0.8024
     },
     {
       "id": "m03",
@@ -355,8 +355,8 @@
       ],
       "rank": 1,
       "rr": 1.0,
-      "top1_score": 0.881682,
-      "top1_dense": 0.7951
+      "top1_score": 0.881591,
+      "top1_dense": 0.795
     },
     {
       "id": "u01",
@@ -372,8 +372,8 @@
       ],
       "rank": null,
       "rr": 0.0,
-      "top1_score": 0.743754,
-      "top1_dense": 0.6742
+      "top1_score": 0.743402,
+      "top1_dense": 0.6739
     },
     {
       "id": "u02",
@@ -389,8 +389,8 @@
       ],
       "rank": null,
       "rr": 0.0,
-      "top1_score": 0.734468,
-      "top1_dense": 0.5985
+      "top1_score": 0.734199,
+      "top1_dense": 0.598
     },
     {
       "id": "u03",
@@ -406,8 +406,8 @@
       ],
       "rank": null,
       "rr": 0.0,
-      "top1_score": 0.742021,
-      "top1_dense": 0.6755
+      "top1_score": 0.741778,
+      "top1_dense": 0.6752
     },
     {
       "id": "u04",
@@ -423,8 +423,8 @@
       ],
       "rank": null,
       "rr": 0.0,
-      "top1_score": 0.769401,
-      "top1_dense": 0.5741
+      "top1_score": 0.769116,
+      "top1_dense": 0.5736
     },
     {
       "id": "u05",
@@ -440,8 +440,8 @@
       ],
       "rank": null,
       "rr": 0.0,
-      "top1_score": 0.735301,
-      "top1_dense": 0.6285
+      "top1_score": 0.734877,
+      "top1_dense": 0.6281
     }
   ]
 }

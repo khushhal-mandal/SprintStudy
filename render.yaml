@@ -1,0 +1,45 @@
+# Render blueprint for the API.
+#
+#   Render dashboard -> New -> Blueprint -> point at this repo
+#
+# Postgres is not defined here. Render's own Postgres does not carry the pgvector
+# extension on the free tier, and schema.sql opens with CREATE EXTENSION vector,
+# so the database is Neon instead and reaches this service as DATABASE_URL.
+#
+# No build args are set, so the Dockerfile's BAKE_MODEL default of true applies:
+# the ONNX weights ship inside the image. That is deliberate here - a free
+# instance has an ephemeral filesystem, so a volume-cached model would be
+# re-downloaded on every cold start and the first request after idle would hang.
+
+services:
+  - type: web
+    name: sprintstudy-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+
+    # /openapi.json rather than a purpose-built /health: FastAPI serves it for
+    # free, and it only answers once the app has actually started, which is the
+    # property a health check needs. A route that returned 200 from a stub would
+    # report healthy while the model was still loading.
+    healthCheckPath: /openapi.json
+
+    envVars:
+      # Neon connection string, including ?sslmode=require. Set in the dashboard,
+      # never committed - sync:false means Render prompts rather than reading a
+      # value from this file.
+      - key: DATABASE_URL
+        sync: false
+
+      # Only needed for answering and quiz generation. Absent, ingestion and
+      # retrieval still work and the LLM routes return 503 naming the cause.
+      - key: GROQ_API_KEY
+        sync: false
+
+      - key: STORE
+        value: postgres
+
+      # Matches the Dockerfile. Points at the baked-in cache rather than a mount.
+      - key: EMBED_CACHE_DIR
+        value: /models

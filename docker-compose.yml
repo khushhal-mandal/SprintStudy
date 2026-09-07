@@ -29,7 +29,11 @@ services:
       retries: 20
 
   api:
-    build: .
+    build:
+      context: .
+      args:
+        # The model lives in the study-models volume here, not in the image.
+        BAKE_MODEL: "false"
     container_name: study-api
     depends_on:
       db:
