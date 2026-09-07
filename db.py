@@ -83,11 +83,31 @@ def close() -> None:
 
 
 def apply_schema() -> None:
-    """Idempotent - every statement in schema.sql is IF NOT EXISTS."""
+    """Idempotent - every statement in schema.sql is IF NOT EXISTS.
+
+    Deliberately not through pool(). The pool configures every connection with
+    register_vector, which raises "vector type not found in the database" until
+    CREATE EXTENSION vector has run - and that is the first line of schema.sql.
+    Bootstrapping an empty database through the pool is therefore impossible:
+    the pool cannot open until the schema exists, and the schema is what this
+    function creates.
+
+    Local compose never exposed it. schema.sql is mounted into
+    /docker-entrypoint-initdb.d/, so Postgres applies it while initialising an
+    empty volume and the extension always exists before the app connects. A
+    managed database has no such hook, so the first deploy against an empty
+    Neon instance failed here with a PoolTimeout that named nothing useful.
+
+    A plain connection is enough: this DDL binds no vector values, so it needs
+    no type adaptation.
+    """
     with open(SCHEMA_PATH, encoding="utf-8") as fh:
         ddl = fh.read()
-    with pool().connection() as conn:
-        conn.execute(ddl)
+    try:
+        with psycopg.connect(DATABASE_URL, connect_timeout=10) as conn:
+            conn.execute(ddl)
+    except psycopg.Error as exc:
+        raise SystemExit(_unreachable(exc)) from None
 
 
 def healthy() -> bool:
