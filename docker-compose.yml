@@ -47,6 +47,11 @@ services:
       # cause on the first call that needs it - ingestion and retrieval do not.
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       STORE: postgres
+      # A development default, so a fresh clone can upload without setup. The
+      # deployed instance sets a real secret; unset would refuse uploads
+      # entirely, which is correct there and only friction here.
+      UPLOAD_TOKEN: ${UPLOAD_TOKEN:-dev-upload-token}
+      DEMO_DOCUMENT_ID: ${DEMO_DOCUMENT_ID:-1}
     ports:
       - "8000:8000"
     volumes:

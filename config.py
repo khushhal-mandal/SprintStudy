@@ -321,3 +321,23 @@ DATABASE_URL = os.environ.get(
 # Which backend the retrievers read from. The NumPy store stays the reference
 # implementation - the Postgres one is only correct insofar as it matches it.
 STORE = os.environ.get("STORE", "numpy")
+
+# --- public instance ---
+
+# What a visitor lands on. Pinned rather than derived, because both obvious
+# derivations are wrong on a public instance: "newest" makes whatever a stranger
+# uploaded last into the landing experience, and "largest" is merely a better
+# guess at the same question. Neither is a decision anyone made.
+DEMO_DOCUMENT_ID = int(os.environ.get("DEMO_DOCUMENT_ID", "1"))
+
+# Shared secret for POST /upload. Reading is open - /ask and /quiz serve the
+# seeded document to anyone - but writing is not, because an open upload on a
+# public URL means everyone can read everything anyone uploads. Two personal
+# resumes reached the deployed instance that way.
+#
+# Unset means uploads are refused, not open. Fail-closed is the whole point: an
+# instance where someone forgot to configure this is exactly the instance that
+# should not accept documents. docker-compose.yml supplies a development value
+# so a local clone still works out of the box.
+UPLOAD_TOKEN = os.environ.get("UPLOAD_TOKEN", "")
+UPLOAD_TOKEN_HEADER = "X-Upload-Token"

@@ -25,15 +25,13 @@ export default function App() {
         if (!live) return;
         setIndexed(rows);
         if (rows.length > 0) {
-          // The largest document, not the newest. Newest-first is right for
-          // the list, but as a default it means whatever anyone uploaded last
-          // becomes the landing experience for the next visitor - a two-page
-          // PDF is a worse demonstration than the book, and on a public
-          // instance it is not necessarily something anyone meant to feature.
-          const best = rows.reduce((a, b) =>
-            (b.chunk_count ?? 0) > (a.chunk_count ?? 0) ? b : a
-          );
-          setDoc(best);
+          // The document the API flags as the demo, decided by DEMO_DOCUMENT_ID
+          // on the server. Not "newest", which makes whatever a stranger
+          // uploaded last into the landing experience, and not "largest",
+          // which is only a better guess at the same question. The fallback
+          // exists for a local instance where the configured id is absent.
+          const landing = rows.find((d) => d.demo) ?? rows[0];
+          setDoc(landing);
           setTab("ask");
         }
       })

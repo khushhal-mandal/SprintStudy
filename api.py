@@ -9,18 +9,25 @@ attempt.
 """
 
 import hashlib
+import secrets
 import tempfile
 import uuid
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 import db
 import quiz as quiz_module
 from chunker import chunk_pages
-from config import ANSWER_K, QUIZ_DEFAULT_N
+from config import (
+    ANSWER_K,
+    DEMO_DOCUMENT_ID,
+    QUIZ_DEFAULT_N,
+    UPLOAD_TOKEN,
+    UPLOAD_TOKEN_HEADER,
+)
 from embedder import embed_chunks
 from pdf_parser import extract_pages
 
@@ -72,14 +79,44 @@ class SubmitRequest(BaseModel):
 # --------------------------------------------------------------------------
 
 
+def _authorise_upload(token: str | None) -> None:
+    """Reading is open; writing is not.
+
+    /ask and /quiz serve the seeded document to anyone, which is the point of a
+    public demo. /upload is different: whatever is uploaded becomes readable by
+    every other visitor, so it needs a secret the operator holds.
+
+    Unset UPLOAD_TOKEN refuses rather than allows. An instance nobody configured
+    is exactly the instance that should not be taking documents, and fail-open
+    is how two personal resumes ended up on the public one.
+
+    compare_digest rather than ==, so the comparison does not leak the token's
+    length or its matching prefix through timing.
+    """
+    if not UPLOAD_TOKEN:
+        raise HTTPException(
+            503,
+            f"Uploads are disabled: {UPLOAD_TOKEN_HEADER.upper().replace('-', '_')} "
+            "is not configured on this instance.",
+        )
+    if not token or not secrets.compare_digest(token, UPLOAD_TOKEN):
+        raise HTTPException(401, f"A valid {UPLOAD_TOKEN_HEADER} header is required.")
+
+
 @app.post("/upload", status_code=202)
-async def upload(file: UploadFile, background: BackgroundTasks) -> dict:
+async def upload(
+    file: UploadFile,
+    background: BackgroundTasks,
+    x_upload_token: str | None = Header(default=None),
+) -> dict:
     """Accept a PDF and ingest it in the background.
 
     Ingestion of a 296-page PDF takes minutes, so holding the request open
     would die at any proxy in front of this. The row is created as 'pending'
     and the caller polls GET /documents/{id}.
     """
+    _authorise_upload(x_upload_token)
+
     payload = await file.read()
     if not payload:
         raise HTTPException(400, "empty upload")
@@ -158,7 +195,12 @@ def documents() -> list[dict]:
             "  FROM documents WHERE status = 'ready' ORDER BY id DESC"
         ).fetchall()
     keys = ("document_id", "filename", "status", "pages", "chunk_count", "created_at")
-    return [dict(zip(keys, row)) for row in rows]
+    # Which one a visitor should land on, decided here from config rather than
+    # inferred by the client from "newest" or "largest" - both of which are
+    # guesses at a question the operator should answer.
+    return [
+        {**dict(zip(keys, row)), "demo": row[0] == DEMO_DOCUMENT_ID} for row in rows
+    ]
 
 
 @app.get("/documents/{document_id}")

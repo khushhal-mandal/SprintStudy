@@ -336,6 +336,56 @@ looked fine, the citation count was just wrong.
 Markers outside `1..len(chunks)` are **dropped rather than trusted**, and reported in
 `dropped_citations`. This is detectable precisely because the vocabulary is bounded.
 
+#### The parser has been wrong twice, silently, in the same way
+
+The citation *contract* is sound — the model can only emit passage indices, they are
+bounded, and out-of-range ones are counted rather than believed. That is what makes a wrong
+page unrepresentable. **The parser for that contract is a separate thing, and it has been
+incomplete twice.**
+
+| when | what the model wrote | what the regex expected | result |
+|---|---|---|---|
+| milestone 5 | `【5】` full-width brackets | `[5]` ASCII only | **8 of 14 citations discarded** |
+| production, post-deploy | `【2†L3-L5】` index + line range | closing bracket straight after the digits | **every citation on that answer discarded** |
+
+Both failures are identical in shape and both are nastier than they look:
+
+- **The answer was correct both times.** Retrieval returned the right pages, the model
+  grounded itself in them and cited them properly. Only the parse failed.
+- **Nothing errored.** No exception, no warning, no log line. The markers simply did not match.
+- **It surfaces as a content problem.** `uncited` goes `True`, so the metric says *the model
+  failed to cite* and the UI says *"treat this with more caution than a cited one"* — both
+  accusing the model of something the parser did. The second bug was found only because a
+  routine check printed `pages: []` on an answer that visibly contained citations.
+
+**The fix must stay strict.** The tempting repair is to allow anything between the digits
+and the closing bracket:
+
+```python
+r"[\[【](\d+)[^\]】]*[\]】]"     # DO NOT
+```
+
+That parses `[see 3]` as a citation of passage 3. **A permissive pattern invents citations
+rather than dropping them**, which converts a visible, countable failure into an invisible,
+uncountable one — and a fabricated citation is precisely what the whole design exists to make
+impossible. Dropping a real citation is a bug; inventing one is a broken guarantee.
+
+So the suffix is admitted only in the exact form observed:
+
+```python
+CITATION_RE = re.compile(r"[\[【](\d+)(?:†[^\]】]*)?[\]】]")
+```
+
+Verified to accept `[1]`, `【5】`, `[5】`, `【2†L3-L5】`, `[12]` and to reject `[see 3]` and
+`[1, 2]`. **New marker forms belong here as they are observed, never guessed at** — the same
+discipline as `CID_MAP`, where every glyph code was identified from the PDF rather than
+inferred.
+
+The pattern lives in two places — `qa.py` and `frontend/src/Citation.jsx` — because both
+resolve the same markers, and they are verified to return identical captures. A widened
+backend with a narrow frontend would render a raw `【2†L3-L5】` beside a citation list that
+does contain it.
+
 ### 6.3 Refusal is a prompt, not a threshold
 
 The obvious design — refuse when top similarity is low — **does not work**, and the eval set
@@ -539,6 +589,32 @@ sees a same-origin `/api` path, in production exactly as in development.
 volume-cached model on every cold start, and a demo that stalls 40s on first click reads as
 broken. `docker-compose.yml` passes `false`, because there a named volume persists and a
 smaller image is worth more.
+
+### Reading is open, writing is not
+
+`/ask` and `/quiz` serve the seeded document to anyone — that is the point of a public demo.
+`/upload` requires `X-Upload-Token`, checked with `secrets.compare_digest` so the comparison
+leaks neither the token's length nor a matching prefix through timing.
+
+The asymmetry is not arbitrary. **Anything uploaded to a public instance becomes readable by
+every other visitor**, through `/ask` with that `document_id`. Two personal résumés reached
+the deployed instance before the guard existed and were retrievable in full by anyone who
+tried `document_id: 2`.
+
+**Unset `UPLOAD_TOKEN` refuses uploads rather than allowing them.** An instance nobody
+configured is exactly the instance that should not be accepting documents, and fail-open is
+how the résumés got there. `docker-compose.yml` supplies a development value so a fresh
+clone still works locally, where the exposure does not exist.
+
+The frontend takes the token as a password field and holds it in component state. **It is
+never bundled** — a secret in a client bundle is not a secret — so the operator supplies it
+at upload time and readers never need one.
+
+**`DEMO_DOCUMENT_ID`** pins what a visitor lands on. Both obvious derivations are wrong on a
+public instance: *newest* makes whatever a stranger uploaded last into the landing
+experience, and *largest* is only a better guess at the same question. Neither is a decision
+anyone actually made, which is the problem. The API flags the configured document in
+`GET /documents` and the client honours the flag rather than re-deriving it.
 
 ---
 

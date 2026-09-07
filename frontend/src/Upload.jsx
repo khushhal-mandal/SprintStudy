@@ -14,6 +14,9 @@ export default function Upload({ doc, onReady }) {
   ready.current = onReady;
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  // Held in component state only - never persisted, never bundled. The public
+  // instance requires it; a local one accepts the development value.
+  const [token, setToken] = useState("");
 
   // Ingestion runs in the background - a 296-page PDF takes minutes - so the
   // only way to observe it is to poll until the row settles.
@@ -38,7 +41,7 @@ export default function Upload({ doc, onReady }) {
     setBusy(true);
     setError(null);
     try {
-      const started = await uploadPdf(file);
+      const started = await uploadPdf(file, token);
       // Same bytes as an earlier upload: already indexed, nothing to poll.
       const record = started.reused
         ? await getDocument(started.document_id)
@@ -55,7 +58,29 @@ export default function Upload({ doc, onReady }) {
   return (
     <section>
       <h2>Upload a PDF</h2>
-      <input type="file" accept="application/pdf" onChange={handle} disabled={busy} />
+      <p className="muted">
+        Reading is open to everyone; uploading is not. Whatever is uploaded here
+        becomes readable by every other visitor, so it needs the instance's
+        upload token.
+      </p>
+      <div className="row">
+        <input
+          type="password"
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+          placeholder="Upload token"
+          autoComplete="off"
+          aria-label="Upload token"
+        />
+      </div>
+      <div className="row upload-row">
+        <input
+          type="file"
+          accept="application/pdf"
+          onChange={handle}
+          disabled={busy || !token.trim()}
+        />
+      </div>
       {busy && <Pending label="Uploading…" />}
 
       {status && (
