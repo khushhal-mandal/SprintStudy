@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { USE_FIXTURE, generateQuiz, submitQuiz } from "./api";
+import { generateQuiz, submitQuiz } from "./api";
 
 export default function Quiz({ documentId }) {
   const [range, setRange] = useState({ startPage: 93, endPage: 103, n: 5 });
@@ -47,14 +47,6 @@ export default function Quiz({ documentId }) {
   return (
     <section>
       <h2>Quiz</h2>
-
-      {USE_FIXTURE && (
-        <p className="warn">
-          Fixture mode. /quiz/generate has not yet been exercised against a real model
-          response, so these questions are canned. Set USE_FIXTURE to false in api.js once
-          Groq quota is available.
-        </p>
-      )}
 
       <div className="row">
         <label>

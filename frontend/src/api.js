@@ -4,13 +4,6 @@
 // a stopped container, an exhausted token quota. Swallowing that in favour of a
 // generic message would throw away the only useful part of the response.
 
-import fixtures from "./fixtures/quiz.json";
-
-// /quiz/generate has never returned a real LLM response - the Groq daily quota
-// ran out before it could be exercised. Flip this to false once quota returns,
-// and replace the fixture with a captured real response.
-export const USE_FIXTURE = true;
-
 export class ApiError extends Error {
   constructor(status, detail) {
     super(detail);
@@ -61,7 +54,6 @@ export function ask(question, documentId) {
 }
 
 export function generateQuiz({ startPage, endPage, n, documentId }) {
-  if (USE_FIXTURE) return Promise.resolve(fixtures.generate);
   return request("/quiz/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -75,25 +67,9 @@ export function generateQuiz({ startPage, endPage, n, documentId }) {
 }
 
 export function submitQuiz(quizId, responses) {
-  if (USE_FIXTURE) {
-    // Score against the fixture's answer key so the view behaves for any
-    // selection, rather than always replaying one canned result.
-    const marks = fixtures.answerKey.map((correct, position) => ({
-      position,
-      submitted: responses[position],
-      correct_index: correct,
-      correct: responses[position] === correct,
-      page: fixtures.generate.questions[position].page,
-      source_chunk_id: fixtures.chunkIds[position],
-      explanation: fixtures.explanations[position],
-    }));
-    return Promise.resolve({
-      quiz_id: quizId,
-      score: marks.filter((m) => m.correct).length,
-      total: marks.length,
-      marks,
-    });
-  }
+  // Scoring is the server's, not this file's. /quiz/generate withholds
+  // answer_index precisely so the client cannot mark its own work, and
+  // correct_index arrives here only in the /quiz/submit response.
   return request("/quiz/submit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

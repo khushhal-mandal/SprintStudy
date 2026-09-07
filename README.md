@@ -9,6 +9,13 @@ vector database. Chunking, embedding, BM25, rank fusion, storage and search are 
 repo, and every retrieval decision in it was measured against a hand-written eval set
 before it was kept.
 
+**Live:** [sprintstudyai.vercel.app](https://sprintstudyai.vercel.app) &nbsp;·&nbsp;
+API: [sprintstudy-api.onrender.com](https://sprintstudy-api.onrender.com/docs)
+
+> The API runs on Render's free tier, which sleeps after ~15 minutes idle. **The first
+> request after a period of inactivity takes ~30 seconds** while the instance wakes; every
+> request after that is fast. If the first click seems to hang, that is what is happening.
+
 > **Status:** milestones 1–8 complete. Known gaps are in [Limitations](#limitations), not
 > hidden.
 
@@ -360,14 +367,9 @@ metrics.
 - **BM25 has no stemmer**, so "trees" does not match "tree". Adding one meant another
   dependency; the limitation is left visible rather than papered over.
 
-- **`/quiz/generate` has never been exercised against a live model.** Its logic is tested
-  against stubs and its contract is enforced by validation, but the endpoint's happy path is
-  unverified. The frontend quiz view runs against a fixture (`USE_FIXTURE` in
-  `frontend/src/api.js`) holding real model output captured from a CLI run.
-
 - **The frontend has never been visually verified.** It builds, every module transforms, the
-  dev proxy reaches the API and the citation rendering is exercised directly — but no one has
-  confirmed how it looks or behaves in a browser.
+  deployed `/api` rewrite reaches the API and every endpoint has been exercised against it —
+  but no one has confirmed how it *looks* in a browser, only that it works.
 
 - **The free tier shaped how often the benchmark could run.** Groq's API reported a
   200,000 token/day cap during development, which repeatedly gated end-to-end runs. HyDE
