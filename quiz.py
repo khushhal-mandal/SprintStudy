@@ -27,6 +27,7 @@ from config import (
     QUIZ_MIN_ALNUM_RATIO,
     QUIZ_MIN_CHARS,
     QUIZ_DEFAULT_N,
+    QUIZ_BANNED_REFERENCE,
     QUIZ_MAX_RETRIES,
     QUIZ_OPTIONS,
     QUIZ_PATH,
@@ -105,6 +106,15 @@ def validate(mcq: dict, chunk: dict) -> dict:
     # The traceability check: the quoted span has to actually be in the chunk.
     if normalise(mcq["evidence"]) not in normalise(chunk["text"]):
         raise Rejected("'evidence' is not a verbatim span of the chunk")
+
+    # Rule 8's backstop. The student sees the question and its options and
+    # nothing else, so "according to the passage" points at something they
+    # cannot read. Evidence and explanation are exempt: evidence is a verbatim
+    # span of the source and may legitimately contain anything the source does.
+    for label, value in [("question", mcq["question"]), *[("an option", o) for o in options]]:
+        found = QUIZ_BANNED_REFERENCE.search(value)
+        if found:
+            raise Rejected(f"{label} refers to the source text: {found.group(0)!r}")
 
     return {
         "question": mcq["question"].strip(),

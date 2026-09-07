@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
@@ -287,6 +288,24 @@ NEGATION_PAIR = ("(cid:54)=", "≠")
 # tops out at 0.051 and alphanumeric density bottoms out at 0.530; the
 # contents-page chunks ran 0.318-0.356 and 0.243-0.311 respectively. Nothing
 # lies between, so these reject every contents chunk and no real one.
+# Structural backstop for QUIZ_PROMPT rule 8, in front of the rule rather than
+# instead of it. After the rule was tightened to name the passage explicitly, one
+# sampled run came back clean (0 of 5) and the next still produced "as described
+# in the passage" in 1 of 3. A rule the model follows most of the time needs a
+# check that does not depend on it - the same reasoning as the dot-leader filter
+# below sitting in front of the NO_QUESTION sentinel.
+#
+# Deliberately narrow. Bare "page" is not banned: a question about memory paging
+# is legitimate, and what dangles is the *reference*, not the word. Rejected is
+# self-reference to the source text, and numbered page or section citations.
+QUIZ_BANNED_REFERENCE = re.compile(
+    r"\b(passage|excerpt)\b"
+    r"|\bthis (document|text)\b"
+    r"|\bthe (document|text) (above|below)\b"
+    r"|\b(page|section|chapter)\s+\d+",
+    re.IGNORECASE,
+)
+
 QUIZ_MIN_CHARS = 200
 QUIZ_MAX_DOT_RATIO = 0.15
 QUIZ_MIN_ALNUM_RATIO = 0.45
